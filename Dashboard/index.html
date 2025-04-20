@@ -208,46 +208,50 @@
             });
 
             function updateDashboard(logs) {
-                console.log("Raw logs data:", logs);
-                if (!logs) {
-                    console.log("No logs data received");
-                    return;
-                }
-
-                // Convert object to array and sort by timestamp
+3
+                if (!logs) return;
+                
+                // Convert object to array and get the most recent log (last item)
                 const logsArray = Object.values(logs).sort((a, b) => a.timestamp - b.timestamp);
                 const latestLog = logsArray[logsArray.length - 1];
                 
-                // Clear event log
-                const eventLog = document.getElementById('event-log');
-                eventLog.innerHTML = '';
+                console.log("Latest log:", latestLog);
+                
+                // Update train status
+                document.getElementById('train-status').textContent = latestLog.event || "Unknown";
+                
+                // Update gate status
+                document.getElementById('gate-status').textContent = latestLog.gate_status || "Unknown";
+                
+                // Update speed 
+                document.getElementById('train-speed').textContent = latestLog.speed || "0.00";
+                
+                // Update ETA
+                document.getElementById('train-eta').textContent = latestLog.eta || "0.00";
+                
+                // Update timestamp
+                const time = new Date(latestLog.timestamp * 1000).toLocaleTimeString();
+                document.getElementById('train-timestamp').textContent = `Last updated: ${time}`;
+                document.getElementById('gate-timestamp').textContent = `Last updated: ${time}`;
+                
+                // Update event log
+                updateEventLog(logsArray);
+            }
 
-                // Update event log with all entries
+            function updateEventLog(logsArray) {
+                const eventLog = document.getElementById('event-log');
+                eventLog.innerHTML = ''; // Clear existing log entries
+                
                 logsArray.forEach(log => {
                     const logEntry = document.createElement('div');
                     logEntry.className = 'log-entry';
                     
                     const time = new Date(log.timestamp * 1000).toLocaleTimeString();
-                    let eventText = '';
-                    
-                    if (log.event === 'train_detected') {
-                        eventText = 'Train detected at Sensor 1';
-                    } else if (log.event === 'speed_calculated') {
-                        eventText = `Train at Sensor 2, Speed: ${log.speed} km/s, ETA: ${log.eta} sec`;
-                    } else if (log.event === 'train_crossed') {
-                        eventText = 'Train crossed the gate';
-                    } else if (log.event === 'system_reset') {
-                        eventText = 'System reset, gate closed';
-                    } else if (log.test) {
-                        eventText = 'System test';
-                    } else {
-                        // For older data format
-                        eventText = log.crossed ? 'Train crossed' : 'Train detected';
-                    }
+                    let eventText = log.event || "System update";
                     
                     logEntry.innerHTML = `
                         <div><span class="log-time">${time}</span></div>
-                        <div class="log-event">${eventText}</div>
+                        <div class="log-event">${eventText}: ${log.gate_status || ""}</div>
                     `;
                     
                     eventLog.appendChild(logEntry);
@@ -255,108 +259,6 @@
                 
                 // Scroll to bottom of log
                 eventLog.scrollTop = eventLog.scrollHeight;
-                
-                // Update status displays based on latest log
-                if (latestLog) {
-                    updateTrainStatus(latestLog);
-                    updateGateStatus(latestLog);
-                    updateSpeedAndEta(latestLog);
-                }
-            }
-
-            function updateTrainStatus(latestLog) {
-                const trainIcon = document.getElementById('train-icon');
-                const trainStatus = document.getElementById('train-status');
-                const trainTimestamp = document.getElementById('train-timestamp');
-                
-                // Update timestamp
-                const time = new Date(latestLog.timestamp * 1000).toLocaleTimeString();
-                trainTimestamp.textContent = `Last updated: ${time}`;
-                
-                if (latestLog.event === 'train_detected' || latestLog.event === 'speed_calculated') {
-                    trainIcon.innerHTML = '<i class="fas fa-train train-moving"></i>';
-                    trainStatus.textContent = 'Train Approaching';
-                    trainStatus.className = 'status-text train-moving';
-                } else if (latestLog.event === 'train_crossed') {
-                    trainIcon.innerHTML = '<i class="fas fa-train"></i>';
-                    trainStatus.textContent = 'Train Crossed';
-                    trainStatus.className = 'status-text';
-                } else if (latestLog.event === 'system_reset') {
-                    trainIcon.innerHTML = '<i class="fas fa-train"></i>';
-                    trainStatus.textContent = 'No Train Detected';
-                    trainStatus.className = 'status-text';
-                } else if (latestLog.crossed === true) {
-                    // For older data format
-                    trainIcon.innerHTML = '<i class="fas fa-train"></i>';
-                    trainStatus.textContent = 'Train Crossed';
-                    trainStatus.className = 'status-text';
-                } else if (latestLog.crossed === false) {
-                    // For older data format
-                    trainIcon.innerHTML = '<i class="fas fa-train train-moving"></i>';
-                    trainStatus.textContent = 'Train Approaching';
-                    trainStatus.className = 'status-text train-moving';
-                }
-            }
-
-            function updateGateStatus(latestLog) {
-                const gateIcon = document.getElementById('gate-icon');
-                const gateStatus = document.getElementById('gate-status');
-                const gateTimestamp = document.getElementById('gate-timestamp');
-                
-                // Update timestamp
-                const time = new Date(latestLog.timestamp * 1000).toLocaleTimeString();
-                gateTimestamp.textContent = `Last updated: ${time}`;
-                
-                if (latestLog.gate_status === 'closed' || latestLog.event === 'speed_calculated') {
-                    gateIcon.innerHTML = '<i class="fas fa-door-closed gate-closed"></i>';
-                    gateStatus.textContent = 'Closed';
-                    gateStatus.className = 'status-text gate-closed';
-                } else if (latestLog.gate_status === 'closing') {
-                    gateIcon.innerHTML = '<i class="fas fa-door-closed gate-closed"></i>';
-                    gateStatus.textContent = 'Closing';
-                    gateStatus.className = 'status-text gate-closed';
-                } else if (latestLog.gate_status === 'opening' || latestLog.event === 'train_crossed') {
-                    gateIcon.innerHTML = '<i class="fas fa-door-open gate-open"></i>';
-                    gateStatus.textContent = 'Opening';
-                    gateStatus.className = 'status-text gate-open';
-                } else if (latestLog.event === 'system_reset') {
-                    gateIcon.innerHTML = '<i class="fas fa-door-open gate-open"></i>';
-                    gateStatus.textContent = 'Open';
-                    gateStatus.className = 'status-text gate-open';
-                } else if (latestLog.crossed === true) {
-                    // For older data format
-                    gateIcon.innerHTML = '<i class="fas fa-door-open gate-open"></i>';
-                    gateStatus.textContent = 'Open';
-                    gateStatus.className = 'status-text gate-open';
-                } else if (latestLog.crossed === false) {
-                    // For older data format
-                    gateIcon.innerHTML = '<i class="fas fa-door-closed gate-closed"></i>';
-                    gateStatus.textContent = 'Closed';
-                    gateStatus.className = 'status-text gate-closed';
-                }
-            }
-
-            function updateSpeedAndEta(latestLog) {
-                const speedElement = document.getElementById('train-speed');
-                const etaElement = document.getElementById('train-eta');
-                
-                if (latestLog.speed) {
-                    speedElement.textContent = latestLog.speed.toFixed(5);
-                } else {
-                    speedElement.textContent = '0.00000';
-                }
-                
-                if (latestLog.eta) {
-                    etaElement.textContent = latestLog.eta.toFixed(2);
-                } else {
-                    etaElement.textContent = '0.00';
-                }
-                
-                // Clear values when train has crossed or system reset
-                if (latestLog.event === 'train_crossed' || latestLog.event === 'system_reset') {
-                    speedElement.textContent = '0.00000';
-                    etaElement.textContent = '0.00';
-                }
             }
         });
     </script>
