@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Railway Crossing Status Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    
+    <style>
+        body {
+            background-color: #f5f5f5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .status-card {
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            background-color: white;
+            transition: all 0.3s ease;
+        }
+        .status-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        .card-heading {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+        .status-indicator {
+            font-size: 3rem;
+            text-align: center;
+            margin: 15px 0;
+        }
+        .status-text {
+            font-size: 1.2rem;
+            text-align: center;
+            font-weight: bold;
+        }
+        .train-moving {
+            color: #dc3545;
+            animation: pulse 1.5s infinite;
+        }
+        .train-stopped {
+            color: #28a745;
+        }
+        .gate-closed {
+            color: #dc3545;
+        }
+        .gate-open {
+            color: #28a745;
+        }
+        .event-log {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #f9f9f9;
+        }
+        .log-entry {
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        .log-time {
+            font-size: 0.8rem;
+            color: #777;
+        }
+        .log-event {
+            font-weight: bold;
+        }
+        .eta-value {
+            font-size: 2.5rem;
+            text-align: center;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .speed-value {
+            font-size: 2.5rem;
+            text-align: center;
+            font-weight: bold;
+            color: #6610f2;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        .status-timestamp {
+            font-size: 0.8rem;
+            color: #777;
+            text-align: center;
+            margin-top: 5px;
+        }
+        .header {
+            background-color: #343a40;
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 30px;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header text-center">
+            <h1>Railway Crossing Status Dashboard</h1>
+            <p class="lead">Real-time monitoring of train movements and gate status</p>
+        </div>
+
+        <div class="row">
+            <!-- Train Status Card -->
+            <div class="col-md-6">
+                <div class="status-card">
+                    <h2 class="card-heading">Train Status</h2>
+                    <div class="status-indicator" id="train-icon">
+                        <i class="fas fa-train"></i>
+                    </div>
+                    <div class="status-text" id="train-status">No Train Detected</div>
+                    <div class="status-timestamp" id="train-timestamp">Last updated: --</div>
+                </div>
+            </div>
+
+            <!-- Gate Status Card -->
+            <div class="col-md-6">
+                <div class="status-card">
+                    <h2 class="card-heading">Gate Status</h2>
+                    <div class="status-indicator" id="gate-icon">
+                        <i class="fas fa-door-open"></i>
+                    </div>
+                    <div class="status-text" id="gate-status">Open</div>
+                    <div class="status-timestamp" id="gate-timestamp">Last updated: --</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Speed Card -->
+            <div class="col-md-6">
+                <div class="status-card">
+                    <h2 class="card-heading">Current Speed</h2>
+                    <div class="speed-value" id="train-speed">0.00</div>
+                    <div class="status-text">km/s</div>
+                </div>
+            </div>
+
+            <!-- ETA Card -->
+            <div class="col-md-6">
+                <div class="status-card">
+                    <h2 class="card-heading">ETA to Gate</h2>
+                    <div class="eta-value" id="train-eta">0.00</div>
+                    <div class="status-text">seconds</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Event Log Card -->
+        <div class="status-card">
+            <h2 class="card-heading">Event Log</h2>
+            <div class="event-log" id="event-log">
+                <div class="log-entry">
+                    <span class="log-time">System initialized</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Directly initialize Firebase with your config
+            const firebaseConfig = {
+                apiKey: "AIzaSyAI0e-XbTCDqvufGOSZ1DZEsatJuaB_vCI",
+                authDomain: "railwaygateupdate.firebaseapp.com",
+                databaseURL: "https://railwaygateupdate-default-rtdb.firebaseio.com",
+                projectId: "railwaygateupdate",
+                storageBucket: "railwaygateupdate.appspot.com",
+                messagingSenderId: "767631401836",
+                appId: "1:767631401836:web:1d5a2a44c0cf91dd38aef9"
+            };
+
+            // Initialize Firebase manually instead of using hosting auto-config
+            firebase.initializeApp(firebaseConfig);
+            
+            // Reference to logs node
+            const logsRef = firebase.database().ref('logs');
+            
+            console.log("Setting up Firebase listener...");
+            logsRef.limitToLast(20).on('value', (snapshot) => {
+                console.log("Firebase data received:", snapshot.val());
+                updateDashboard(snapshot.val());
+            }, (error) => {
+                console.error("Firebase error:", error);
+            });
+
+            function updateDashboard(logs) {
+                console.log("Raw logs data:", logs);
+                if (!logs) {
+                    console.log("No logs data received");
+                    return;
+                }
+
+                // Convert object to array and sort by timestamp
+                const logsArray = Object.values(logs).sort((a, b) => a.timestamp - b.timestamp);
+                const latestLog = logsArray[logsArray.length - 1];
+                
+                // Clear event log
+                const eventLog = document.getElementById('event-log');
+                eventLog.innerHTML = '';
+
+                // Update event log with all entries
+                logsArray.forEach(log => {
+                    const logEntry = document.createElement('div');
+                    logEntry.className = 'log-entry';
+                    
+                    const time = new Date(log.timestamp * 1000).toLocaleTimeString();
+                    let eventText = '';
+                    
+                    if (log.event === 'train_detected') {
+                        eventText = 'Train detected at Sensor 1';
+                    } else if (log.event === 'speed_calculated') {
+                        eventText = `Train at Sensor 2, Speed: ${log.speed} km/s, ETA: ${log.eta} sec`;
+                    } else if (log.event === 'train_crossed') {
+                        eventText = 'Train crossed the gate';
+                    } else if (log.event === 'system_reset') {
+                        eventText = 'System reset, gate closed';
+                    } else if (log.test) {
+                        eventText = 'System test';
+                    } else {
+                        // For older data format
+                        eventText = log.crossed ? 'Train crossed' : 'Train detected';
+                    }
+                    
+                    logEntry.innerHTML = `
+                        <div><span class="log-time">${time}</span></div>
+                        <div class="log-event">${eventText}</div>
+                    `;
+                    
+                    eventLog.appendChild(logEntry);
+                });
+                
+                // Scroll to bottom of log
+                eventLog.scrollTop = eventLog.scrollHeight;
+                
+                // Update status displays based on latest log
+                if (latestLog) {
+                    updateTrainStatus(latestLog);
+                    updateGateStatus(latestLog);
+                    updateSpeedAndEta(latestLog);
+                }
+            }
+
+            function updateTrainStatus(latestLog) {
+                const trainIcon = document.getElementById('train-icon');
+                const trainStatus = document.getElementById('train-status');
+                const trainTimestamp = document.getElementById('train-timestamp');
+                
+                // Update timestamp
+                const time = new Date(latestLog.timestamp * 1000).toLocaleTimeString();
+                trainTimestamp.textContent = `Last updated: ${time}`;
+                
+                if (latestLog.event === 'train_detected' || latestLog.event === 'speed_calculated') {
+                    trainIcon.innerHTML = '<i class="fas fa-train train-moving"></i>';
+                    trainStatus.textContent = 'Train Approaching';
+                    trainStatus.className = 'status-text train-moving';
+                } else if (latestLog.event === 'train_crossed') {
+                    trainIcon.innerHTML = '<i class="fas fa-train"></i>';
+                    trainStatus.textContent = 'Train Crossed';
+                    trainStatus.className = 'status-text';
+                } else if (latestLog.event === 'system_reset') {
+                    trainIcon.innerHTML = '<i class="fas fa-train"></i>';
+                    trainStatus.textContent = 'No Train Detected';
+                    trainStatus.className = 'status-text';
+                } else if (latestLog.crossed === true) {
+                    // For older data format
+                    trainIcon.innerHTML = '<i class="fas fa-train"></i>';
+                    trainStatus.textContent = 'Train Crossed';
+                    trainStatus.className = 'status-text';
+                } else if (latestLog.crossed === false) {
+                    // For older data format
+                    trainIcon.innerHTML = '<i class="fas fa-train train-moving"></i>';
+                    trainStatus.textContent = 'Train Approaching';
+                    trainStatus.className = 'status-text train-moving';
+                }
+            }
+
+            function updateGateStatus(latestLog) {
+                const gateIcon = document.getElementById('gate-icon');
+                const gateStatus = document.getElementById('gate-status');
+                const gateTimestamp = document.getElementById('gate-timestamp');
+                
+                // Update timestamp
+                const time = new Date(latestLog.timestamp * 1000).toLocaleTimeString();
+                gateTimestamp.textContent = `Last updated: ${time}`;
+                
+                if (latestLog.gate_status === 'closed' || latestLog.event === 'speed_calculated') {
+                    gateIcon.innerHTML = '<i class="fas fa-door-closed gate-closed"></i>';
+                    gateStatus.textContent = 'Closed';
+                    gateStatus.className = 'status-text gate-closed';
+                } else if (latestLog.gate_status === 'closing') {
+                    gateIcon.innerHTML = '<i class="fas fa-door-closed gate-closed"></i>';
+                    gateStatus.textContent = 'Closing';
+                    gateStatus.className = 'status-text gate-closed';
+                } else if (latestLog.gate_status === 'opening' || latestLog.event === 'train_crossed') {
+                    gateIcon.innerHTML = '<i class="fas fa-door-open gate-open"></i>';
+                    gateStatus.textContent = 'Opening';
+                    gateStatus.className = 'status-text gate-open';
+                } else if (latestLog.event === 'system_reset') {
+                    gateIcon.innerHTML = '<i class="fas fa-door-open gate-open"></i>';
+                    gateStatus.textContent = 'Open';
+                    gateStatus.className = 'status-text gate-open';
+                } else if (latestLog.crossed === true) {
+                    // For older data format
+                    gateIcon.innerHTML = '<i class="fas fa-door-open gate-open"></i>';
+                    gateStatus.textContent = 'Open';
+                    gateStatus.className = 'status-text gate-open';
+                } else if (latestLog.crossed === false) {
+                    // For older data format
+                    gateIcon.innerHTML = '<i class="fas fa-door-closed gate-closed"></i>';
+                    gateStatus.textContent = 'Closed';
+                    gateStatus.className = 'status-text gate-closed';
+                }
+            }
+
+            function updateSpeedAndEta(latestLog) {
+                const speedElement = document.getElementById('train-speed');
+                const etaElement = document.getElementById('train-eta');
+                
+                if (latestLog.speed) {
+                    speedElement.textContent = latestLog.speed.toFixed(5);
+                } else {
+                    speedElement.textContent = '0.00000';
+                }
+                
+                if (latestLog.eta) {
+                    etaElement.textContent = latestLog.eta.toFixed(2);
+                } else {
+                    etaElement.textContent = '0.00';
+                }
+                
+                // Clear values when train has crossed or system reset
+                if (latestLog.event === 'train_crossed' || latestLog.event === 'system_reset') {
+                    speedElement.textContent = '0.00000';
+                    etaElement.textContent = '0.00';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
