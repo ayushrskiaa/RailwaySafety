@@ -27,10 +27,19 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             background-color: white;
             transition: all 0.3s ease;
+            border: 1px solid #ddd; /* Add border for consistency */
+            height: 250px; /* Set a fixed height for all status cards */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* Ensure content is spaced evenly */
         }
         .status-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        .status-card.active {
+            border: 2px solid #28a745;
+            background-color: #f9fff9;
         }
         .card-heading {
             font-size: 1.5rem;
@@ -38,16 +47,22 @@
             color: #333;
             border-bottom: 2px solid #f0f0f0;
             padding-bottom: 10px;
+            text-align: center; /* Center align headings */
+            text-transform: uppercase; /* Convert headings to uppercase */
         }
         .status-indicator {
-            font-size: 3rem;
+            font-size: 3rem; /* Ensure consistent icon size */
             text-align: center;
             margin: 15px 0;
+        }
+        .status-indicator i {
+            font-size: 3rem; /* Set the icon size explicitly */
         }
         .status-text {
             font-size: 1.2rem;
             text-align: center;
             font-weight: bold;
+            text-transform: uppercase; /* Convert text to uppercase */
         }
         .train-moving {
             color: #dc3545;
@@ -84,22 +99,11 @@
         .log-event {
             font-weight: bold;
         }
-        .eta-value {
+        .eta-value, .speed-value {
             font-size: 2.5rem;
             text-align: center;
             font-weight: bold;
             color: #007bff;
-        }
-        .speed-value {
-            font-size: 2.5rem;
-            text-align: center;
-            font-weight: bold;
-            color: #6610f2;
-        }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
         }
         .status-timestamp {
             font-size: 0.8rem;
@@ -113,6 +117,9 @@
             padding: 20px 0;
             margin-bottom: 30px;
             border-radius: 10px;
+        }
+        .row {
+            margin-bottom: 20px;
         }
     </style>
 </head>
@@ -181,8 +188,8 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Directly initialize Firebase with your config
+        document.addEventListener('DOMContentLoaded', function () {
+            // Firebase configuration
             const firebaseConfig = {
                 apiKey: "AIzaSyAI0e-XbTCDqvufGOSZ1DZEsatJuaB_vCI",
                 authDomain: "railwaygateupdate.firebaseapp.com",
@@ -193,13 +200,25 @@
                 appId: "1:767631401836:web:1d5a2a44c0cf91dd38aef9"
             };
 
-            // Initialize Firebase manually instead of using hosting auto-config
+            // Initialize Firebase
             firebase.initializeApp(firebaseConfig);
-            
+
             // Reference to logs node
             const logsRef = firebase.database().ref('logs');
-            
+            const storedLogsRef = firebase.database().ref('storedLogs');
+
             console.log("Setting up Firebase listener...");
+
+            // Fetch previous logs from Firebase and populate storedLogs
+            storedLogsRef.once('value', (snapshot) => {
+                const logs = snapshot.val();
+                if (logs) {
+                    storedLogs = Object.values(logs);
+                    updateEventLog(storedLogs);
+                }
+            });
+
+            // Listen for new logs in the 'logs' node
             logsRef.limitToLast(20).on('value', (snapshot) => {
                 console.log("Snapshot value:", snapshot.val());
                 updateDashboard(snapshot.val());
@@ -209,7 +228,7 @@
                 train_detected: "Train Approaching",
                 speed_calculated: "Train Moving towards Gate",
                 train_crossed: "Train Crossed",
-                system_reset: "No Train Detected",
+                system_reset: "No Train Nearby",
             };
 
             const gateMap = {
@@ -239,11 +258,14 @@
                     lastUpdateTime = latestLog.timestamp; // Update the last update time (timestamp)
                     lastRealTime = new Date().toLocaleTimeString(); // Update the real-time of the last update
 
+                    // Determine the gate status for the log
+                    const gateStatus = latestLog.event === "system_reset" ? "Opened" : gateMap[latestLog.gate_status] || latestLog.gate_status || "Loading Update...";
+
                     // Store the log with its timestamp in Firebase
                     const logData = {
                         time: lastRealTime, // Real-time of the update
-                        event: latestLog.event || "Unknown Event",
-                        gateStatus: latestLog.gate_status || "Unknown Status",
+                        event: latestLog.event || "System Initialized",
+                        gateStatus: gateStatus, // Use the determined gate status
                         speed: latestLog.speed || "0.00",
                         eta: latestLog.eta || "0.00",
                     };
@@ -266,7 +288,13 @@
                 document.getElementById('train-timestamp').textContent = `Last updated: ${lastRealTime}`;
 
                 // Update gate status
-                document.getElementById('gate-status').textContent = gateMap[latestLog.gate_status] || latestLog.gate_status || "Loading Update...";
+                if (latestLog.event === "system_reset") {
+                    document.getElementById('gate-status').textContent = "Open"; // Set gate status to Open
+                    document.getElementById('gate-icon').className = "fas fa-door-open gate-open"; // Update gate icon
+                } else {
+                    document.getElementById('gate-status').textContent = gateMap[latestLog.gate_status] || latestLog.gate_status || "Loading Update...";
+                    document.getElementById('gate-icon').className = "fas fa-door-closed gate-closed"; // Update gate icon
+                }
                 document.getElementById('gate-timestamp').textContent = `Last updated: ${lastRealTime}`;
 
                 // Update speed
@@ -287,14 +315,19 @@
 
                 logsArray.forEach(log => {
                     const logTime = log.time || "Unknown Time"; // Ensure log.time exists
-                    const eventText = eventMap[log.event] || log.event || "System update";
+                    const eventText = eventMap[log.event] || log.event || null;
+                    const gateStatusText = gateMap[log.gateStatus] || log.gateStatus || null;
+
+                    if (!eventText && !gateStatusText) {
+                        return;
+                    }
 
                     const logEntry = document.createElement('div');
                     logEntry.className = 'log-entry';
 
                     logEntry.innerHTML = `
                         <div><span class="log-time">${logTime}</span></div>
-                        <div class="log-event">${eventText}: ${gateMap[log.gateStatus] || log.gateStatus || ""}</div>
+                        <div class="log-event">${eventText || ""}: ${gateStatusText || ""}</div>
                     `;
 
                     eventLog.appendChild(logEntry);
