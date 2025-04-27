@@ -201,12 +201,13 @@
             
             console.log("Setting up Firebase listener...");
             logsRef.limitToLast(20).on('value', (snapshot) => {
+                console.log("Snapshot value:", snapshot.val());
                 updateDashboard(snapshot.val());
             });
 
             const eventMap = {
                 train_detected: "Train Approaching",
-                speed_calculated: "Train Moving to Gate",
+                speed_calculated: "Train Moving towards Gate",
                 train_crossed: "Train Crossed",
                 system_reset: "No Train Detected",
             };
@@ -217,38 +218,44 @@
                 closing: "Closing"
             };
 
+            let lastUpdateTime = null; // Variable to store the last update time (timestamp)
+            let lastRealTime = null;
+
             function updateDashboard(logs) {
                 if (!logs) return;
 
-                // Sort by Firebase push key (chronological order)
-                const logsArray = Object.entries(logs)
-                    .sort((a, b) => a[0].localeCompare(b[0]))
-                    .map(entry => entry[1]);
+                const logsArray = Object.values(logs);
+
+                if (logsArray.length === 0) return; // Ensure logsArray is not empty
+
                 const latestLog = logsArray[logsArray.length - 1];
+                if (!latestLog) return; // Ensure latestLog is valid
 
                 console.log("Latest log:", latestLog);
-                
-                // Update train status
-                document.getElementById('train-status').textContent = eventMap[latestLog.event] || latestLog.event || "Unknown";
-                
-                // Update gate status
-                document.getElementById('gate-status').textContent = gateMap[latestLog.gate_status] || latestLog.gate_status || "Unknown";
-                
-                // Update speed 
-                if (latestLog.event === "train_crossed") {
-                    document.getElementById('train-speed').textContent = "0.00";
-                } else {
-                    document.getElementById('train-speed').textContent = latestLog.speed || "0.00";
+
+                if (!lastUpdateTime || lastUpdateTime !== latestLog.timestamp) {
+                    lastUpdateTime = latestLog.timestamp;
+                    lastRealTime = new Date().toLocaleTimeString();
                 }
-                
+
+                // Convert the last update time to a readable format
+                const updateTime = new Date(lastUpdateTime * 1000).toLocaleTimeString();
+
+                // Update train status
+                document.getElementById('train-status').textContent = eventMap[latestLog.event] || latestLog.event || "Loading Update...";
+                document.getElementById('train-timestamp').textContent = `Last updated: ${lastRealTime}`;
+
+                // Update gate status
+                document.getElementById('gate-status').textContent = gateMap[latestLog.gate_status] || latestLog.gate_status || "Loading Update...";
+                document.getElementById('gate-timestamp').textContent = `Last updated: ${lastRealTime}`;
+
+                // Update speed
+                const speed = latestLog.event === "train_crossed" ? "0.00" : latestLog.speed || "0.00";
+                document.getElementById('train-speed').textContent = speed;
+
                 // Update ETA
                 document.getElementById('train-eta').textContent = latestLog.eta || "0.00";
-                
-                // Update timestamp
-                const time = new Date(latestLog.timestamp * 1000).toLocaleTimeString();
-                document.getElementById('train-timestamp').textContent = `Last updated: ${time}`;
-                document.getElementById('gate-timestamp').textContent = `Last updated: ${time}`;
-                
+
                 // Update event log
                 updateEventLog(logsArray);
             }
@@ -256,22 +263,22 @@
             function updateEventLog(logsArray) {
                 const eventLog = document.getElementById('event-log');
                 eventLog.innerHTML = ''; // Clear existing log entries
-                
+
                 logsArray.forEach(log => {
                     const logEntry = document.createElement('div');
                     logEntry.className = 'log-entry';
-                    
-                    const time = new Date(log.timestamp * 1000).toLocaleTimeString();
+
+                    const logTime = new Date(log.timestamp * 1000).toLocaleTimeString();
                     let eventText = log.event || "System update";
-                    
+
                     logEntry.innerHTML = `
-                        <div><span class="log-time">${time}</span></div>
+                        <div><span class="log-time">${logTime}</span></div>
                         <div class="log-event">${eventText}: ${log.gate_status || ""}</div>
                     `;
-                    
+
                     eventLog.appendChild(logEntry);
                 });
-                
+
                 // Scroll to bottom of log
                 eventLog.scrollTop = eventLog.scrollHeight;
             }
