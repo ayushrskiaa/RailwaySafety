@@ -219,7 +219,8 @@
             };
 
             let lastUpdateTime = null; // Variable to store the last update time (timestamp)
-            let lastRealTime = null;
+            let lastRealTime = new Date().toLocaleTimeString(); // Variable to store the real-time of the last update
+            let storedLogs = []; // Array to store logs with their timestamps
 
             function updateDashboard(logs) {
                 if (!logs) return;
@@ -233,10 +234,29 @@
 
                 console.log("Latest log:", latestLog);
 
+                // Update the last update time and real-time only when a new event is received
                 if (!lastUpdateTime || lastUpdateTime !== latestLog.timestamp) {
-                    lastUpdateTime = latestLog.timestamp;
-                    lastRealTime = new Date().toLocaleTimeString();
+                    lastUpdateTime = latestLog.timestamp; // Update the last update time (timestamp)
+                    lastRealTime = new Date().toLocaleTimeString(); // Update the real-time of the last update
+
+                    // Store the log with its timestamp in Firebase
+                    const logData = {
+                        time: lastRealTime, // Real-time of the update
+                        event: latestLog.event || "Unknown Event",
+                        gateStatus: latestLog.gate_status || "Unknown Status",
+                        speed: latestLog.speed || "0.00",
+                        eta: latestLog.eta || "0.00",
+                    };
+
+                    // Push the log to Firebase
+                    firebase.database().ref('storedLogs').push(logData)
+                        .catch(error => console.error("Error pushing log to Firebase:", error));
+
+                    // Add the log to the storedLogs array for the event log
+                    storedLogs.push(logData);
                 }
+
+                console.log("Stored Logs:", storedLogs);
 
                 // Convert the last update time to a readable format
                 const updateTime = new Date(lastUpdateTime * 1000).toLocaleTimeString();
@@ -257,23 +277,24 @@
                 document.getElementById('train-eta').textContent = latestLog.eta || "0.00";
 
                 // Update event log
-                updateEventLog(logsArray);
+                updateEventLog(storedLogs);
             }
 
             function updateEventLog(logsArray) {
+                console.log("Logs Array in updateEventLog:", logsArray);
                 const eventLog = document.getElementById('event-log');
                 eventLog.innerHTML = ''; // Clear existing log entries
 
                 logsArray.forEach(log => {
+                    const logTime = log.time || "Unknown Time"; // Ensure log.time exists
+                    const eventText = eventMap[log.event] || log.event || "System update";
+
                     const logEntry = document.createElement('div');
                     logEntry.className = 'log-entry';
 
-                    const logTime = new Date(log.timestamp * 1000).toLocaleTimeString();
-                    let eventText = log.event || "System update";
-
                     logEntry.innerHTML = `
                         <div><span class="log-time">${logTime}</span></div>
-                        <div class="log-event">${eventText}: ${log.gate_status || ""}</div>
+                        <div class="log-event">${eventText}: ${gateMap[log.gateStatus] || log.gateStatus || ""}</div>
                     `;
 
                     eventLog.appendChild(logEntry);
