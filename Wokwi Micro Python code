@@ -1,0 +1,265 @@
+import network
+import time
+import json
+import urequests  # Add this import for HTTP requests
+from machine import Pin, I2C, time_pulse_us, PWM
+import ssd1306
+
+# Firebase URL - add this line
+FIREBASE_URL = "https://railwaygateupdate-default-rtdb.firebaseio.com/logs.json"
+
+# ====== Connect to WiFi ======
+print("Connecting to WiFi      ", end="")
+sta_if = network.WLAN(network.STA_IF)
+sta_if.active(True)
+sta_if.connect('Wokwi-GUEST', '')
+max_wait = 10  # Set a max waiting time of 10 seconds
+while not sta_if.isconnected() and max_wait > 0:
+    time.sleep(1)
+    max_wait -= 1
+if max_wait == 0:
+    print("WiFi connection failed")
+else:
+    print("Connected!")
+
+# Test Internet connection
+try:
+    response = urequests.get("http://www.google.com")
+    print("Internet connection successful")
+    response.close()
+except Exception as e:
+    print("Error: No internet connection", e)
+
+# Add Firebase helper function
+def send_to_firebase(data, max_retries=3):
+    retries = 0
+    while retries < max_retries:
+        try:
+            print("Sending to Firebase:", data)
+            response = urequests.post(FIREBASE_URL, json=data)
+            print("Firebase response status:", response.status_code)
+            if response.status_code == 200:
+                print("✅ Data sent to Firebase successfully")
+                response.close()
+                return True
+            else:
+                print("❌ Failed to send data:", response.text)
+                response.close()
+                retries += 1
+                time.sleep(1)
+        except Exception as e:
+            print(f"Error posting to Firebase (attempt {retries+1}/{max_retries}):", e)
+            retries += 1
+            time.sleep(1)
+    return False
+
+# ====== OLED setup ======
+i2c = I2C(0, scl=Pin(22), sda=Pin(21))
+oled = ssd1306.SSD1306_I2C(128, 64, i2c)
+
+# ====== Ultrasonic Sensors ======
+trig1 = Pin(14, Pin.OUT)
+echo1 = Pin(27, Pin.IN)
+
+trig2 = Pin(26, Pin.OUT)
+echo2 = Pin(25, Pin.IN)
+
+trig3 = Pin(33, Pin.OUT)
+echo3 = Pin(32, Pin.IN)
+
+# ====== LED and Buzzer ======
+led = Pin(4, Pin.OUT)
+buzzer = Pin(5, Pin.OUT)
+
+# ====== Servo Motor (Gate) ======
+servo = PWM(Pin(18), freq=50)
+
+def gate_close():
+    servo.duty(40)
+
+def gate_open():
+    servo.duty(115)
+
+# ====== Configs ======
+sensor_gap = 100.0  # meters
+gate_distance = 3000.0  # meters
+threshold = 20       # cm
+
+# ====== Variables ======
+start_time = None
+end_time = None
+stage = 0
+crossed = False
+eta_printed = False
+blinking_active = False
+last_blink_time = time.ticks_ms()
+
+display_time1 = None
+display_time2 = None
+display_speed = None
+eta_to_gate = None
+
+# ====== Get Distance Function ======
+def get_distance(trig, echo):
+    trig.value(0)
+    time.sleep_us(2)
+    trig.value(1)
+    time.sleep_us(10)
+    trig.value(0)
+
+    duration = time_pulse_us(echo, 1, 30000)
+    if duration < 0:
+        return None
+    return (duration / 2) / 29.1
+
+# Test Firebase connection at startup
+try:
+    test_data = {"test": True, "timestamp": time.time()}
+    print("Testing Firebase connection...")
+    if send_to_firebase(test_data):
+        print("Firebase test successful")
+    else:
+        print("Firebase test failed")
+except Exception as e:
+    print("Firebase test error:", e)
+
+# ====== Main Loop ======
+while True:
+    d1 = get_distance(trig1, echo1)
+    d2 = get_distance(trig2, echo2)
+    d3 = get_distance(trig3, echo3)
+
+    if stage == 0 and d1 is not None and d1 < threshold:
+        start_time = time.ticks_ms()
+        display_time1 = start_time / 1000
+        print("Sensor 1 detected at {:.3f} sec".format(display_time1))
+        stage = 1
+        gate_close()
+        blinking_active = True
+        
+        # Send data when train is detected at first sensor
+        data = {
+            "event": "train_detected",
+            "sensor": 1,
+            "time": round(display_time1, 2),
+            "gate_status": "closing",
+            "timestamp": time.time()
+        }
+        send_to_firebase(data)
+        print("DATA:", json.dumps(data))
+        
+        time.sleep(0.5)
+
+    elif stage == 1 and d2 is not None and d2 < threshold:
+        end_time = time.ticks_ms()
+        display_time2 = end_time / 1000
+        print("Sensor 2 detected at {:.3f} sec".format(display_time2))
+
+        elapsed_time_sec = time.ticks_diff(end_time, start_time) / 1000.0
+        display_speed = (sensor_gap*60*60 / elapsed_time_sec) / 1000  # km/h
+        print("Speed: {:.5f} km/h".format(display_speed))
+
+        if not eta_printed:
+            eta_to_gate = gate_distance / display_speed
+            print("ETA to Gate: {:.2f} sec".format(eta_to_gate))
+
+        # Send speed and ETA data
+        data = {
+            "event": "speed_calculated",
+            "sensor": 2,
+            "time": round(display_time2, 2),
+            "speed": round(display_speed, 5),
+            "eta": round(eta_to_gate, 2),
+            "gate_status": "closed",
+            "crossed": False,
+            "timestamp": time.time()
+        }
+        send_to_firebase(data)
+        print("DATA:", json.dumps(data))
+
+        stage = 2
+        time.sleep(0.5)
+
+    elif stage == 2 and d3 is not None and d3 < threshold:
+        print("Sensor 3 detected - Train crossed the gate")
+        crossed = True
+        eta_printed = True
+        stage = 3
+
+        gate_open()
+        blinking_active = False
+        led.value(0)
+        buzzer.value(0)
+
+        # Send data when train crosses gate
+        data = {
+            "event": "train_crossed",
+            "sensor": 3,
+            "time": round(display_time2, 2),
+            "speed": round(display_speed, 5),
+            "eta": 0,
+            "gate_status": "OPENED",
+            "crossed": True,
+            "timestamp": time.time()
+        }
+        send_to_firebase(data)
+        print("DATA:", json.dumps(data))
+
+        time.sleep(0.5)
+
+    if stage == 2 and not crossed:
+        if display_speed is not None and display_speed > 0:
+            time_elapsed = (time.ticks_ms() - end_time) / 1000.0
+            eta_to_gate = (gate_distance - (display_speed * time_elapsed)) / display_speed
+            if eta_to_gate < 0:
+                eta_to_gate = 0
+            print("Updated ETA to Gate: {:.2f} sec".format(eta_to_gate))
+
+    if blinking_active:
+        current_time = time.ticks_ms()
+        if time.ticks_diff(current_time, last_blink_time) > 300:
+            led.value(not led.value())
+            buzzer.value(led.value())
+            last_blink_time = current_time
+
+    if stage == 3 and all(d is not None and d > threshold for d in [d1, d2, d3]):
+        stage = 0
+        start_time = None
+        end_time = None
+        crossed = False
+        eta_printed = False
+        display_time1 = None
+        display_time2 = None
+        display_speed = None
+        eta_to_gate = None
+        blinking_active = False
+        led.value(0)
+        buzzer.value(0)
+        gate_close()
+        
+        # Send data when system resets
+        data = {
+            "event": "system_reset",
+            "gate_status": "closed",
+            "crossed": False,
+            "timestamp": time.time()
+        }
+        send_to_firebase(data)
+        print("DATA:", json.dumps(data))
+        
+        time.sleep(0.2)
+
+    # OLED Display
+    oled.fill(0)
+    if display_time1 is not None:
+        oled.text("Det 1: {:.2f}s".format(display_time1), 0, 0)
+    if display_time2 is not None:
+        oled.text("Det 2: {:.2f}s".format(display_time2), 0, 10)
+    if display_speed is not None:
+        oled.text("Speed: {:.5f}km/s".format(display_speed), 0, 20)
+    if eta_to_gate is not None and not eta_printed:
+        oled.text("ETA to Gate: {:.2f}s".format(eta_to_gate), 0, 30)
+    if crossed:
+        oled.text("Crossed- gate opened", 0, 40)
+    oled.show()
+    time.sleep(0.05)
