@@ -2,6 +2,9 @@
 
 A real-time dashboard for monitoring train movements and railway gate status, using Firebase Realtime Database for live data updates.
 
+> **Note:**  
+> This project was developed as a college semester project and was presented to professors, receiving appreciation from all. It demonstrates a significant impact on railway safety and accident prevention through real-time monitoring and automation.
+
 ## Features
 
 - Live train status: approaching, moving, or crossed
