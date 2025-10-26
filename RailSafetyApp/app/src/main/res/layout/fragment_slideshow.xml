@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/dashboard_background"
+    tools:context=".ui.slideshow.SlideshowFragment">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <!-- Alerts Header -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/alerts_title"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="@color/dark_gray"
+            android:layout_marginBottom="16dp" />
+
+        <!-- Filter Tabs -->
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/alert_tabs"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/card_background"
+            app:tabMode="fixed"
+            app:tabGravity="fill"
+            app:tabTextColor="@color/medium_gray"
+            app:tabSelectedTextColor="@color/primary_blue"
+            app:tabIndicatorColor="@color/primary_blue"
+            android:layout_marginBottom="16dp">
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Active" />
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="History" />
+
+            <com.google.android.material.tabs.TabItem
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="All" />
+        </com.google.android.material.tabs.TabLayout>
+
+    </LinearLayout>
+
+    <!-- Alerts RecyclerView -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/alerts_recycler_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingHorizontal="16dp"
+        android:clipToPadding="false" />
+
+    <!-- Empty State -->
+    <LinearLayout
+        android:id="@+id/empty_state"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/no_alerts"
+            android:textSize="18sp"
+            android:textColor="@color/medium_gray" />
+    </LinearLayout>
+
+</LinearLayout>

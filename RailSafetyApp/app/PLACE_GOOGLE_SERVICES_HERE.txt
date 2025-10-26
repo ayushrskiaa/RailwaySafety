@@ -1,0 +1,19 @@
+⚠️ IMPORTANT: Download google-services.json from Firebase Console
+
+📍 THIS IS THE CORRECT FOLDER!
+
+Place the google-services.json file HERE (in the same folder as this text file).
+
+Steps:
+1. Go to https://console.firebase.google.com/
+2. Create a new project or select existing project
+3. Add Android app with package name: com.example.myapplication2
+4. Download google-services.json
+5. Place the downloaded file in THIS folder (where this text file is located)
+6. Delete this text file after placing google-services.json
+7. Sync Gradle and build again
+
+The file should be at:
+RailSafetyApp/app/google-services.json
+
+NOT in any src/ subfolder!
