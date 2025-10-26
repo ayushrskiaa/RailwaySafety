@@ -10,7 +10,7 @@ import java.util.*
 
 class RailwayCrossingRepository private constructor() {
     
-    private val database: FirebaseDatabase = FirebaseDatabase.getInstance()
+    private val database: FirebaseDatabase = FirebaseDatabase.getInstance("https://iot-implementation-e7fcd-default-rtdb.firebaseio.com")
     private val logsRef: DatabaseReference = database.getReference("logs")
     private val storedLogsRef: DatabaseReference = database.getReference("storedLogs")
     
