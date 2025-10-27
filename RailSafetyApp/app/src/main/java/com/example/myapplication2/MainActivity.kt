@@ -45,6 +45,12 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setSupportActionBar(binding.appBarMain.toolbar)
+        
+        // TEST: Write sample data to Firebase to verify connection
+        testFirebaseConnection()
+        
+        // DIAGNOSTIC: Read existing data from RailwayGate/current
+        testReadRailwayGateData()
 
         binding.appBarMain.fab.setOnClickListener { view ->
             showComplaintDialog()
@@ -72,6 +78,55 @@ class MainActivity : AppCompatActivity() {
     override fun onSupportNavigateUp(): Boolean {
         val navController = findNavController(R.id.nav_host_fragment_content_main)
         return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
+    }
+
+    private fun testFirebaseConnection() {
+        android.util.Log.d("FirebaseTest", "🧪 Testing Firebase connection...")
+        
+        val database = FirebaseDatabase.getInstance()
+        val testRef = database.getReference("logs").child("test_${System.currentTimeMillis()}")
+        
+        val testData = mapOf(
+            "event" to "train_detected",
+            "gate_status" to "closing",
+            "speed" to 45.5,
+            "eta" to 25.3,
+            "timestamp" to System.currentTimeMillis()
+        )
+        
+        testRef.setValue(testData)
+            .addOnSuccessListener {
+                android.util.Log.d("FirebaseTest", "✅ Test data written successfully!")
+                Toast.makeText(this, "✅ Firebase Connected! Data written.", Toast.LENGTH_LONG).show()
+            }
+            .addOnFailureListener { e ->
+                android.util.Log.e("FirebaseTest", "❌ Firebase write failed: ${e.message}")
+                Toast.makeText(this, "❌ Firebase Error: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+    }
+
+    private fun testReadRailwayGateData() {
+        android.util.Log.d("DiagnosticTest", "🔍 Testing read from RailwayGate/current...")
+        
+        val database = FirebaseDatabase.getInstance()
+        database.getReference("RailwayGate/current")
+            .get()
+            .addOnSuccessListener { snapshot ->
+                if (snapshot.exists()) {
+                    android.util.Log.d("DiagnosticTest", "✅ Data EXISTS in RailwayGate/current!")
+                    snapshot.children.forEach { 
+                        android.util.Log.d("DiagnosticTest", "  ${it.key} = ${it.value}")
+                    }
+                    Toast.makeText(this, "✅ Railway data found: ${snapshot.child("event").value}", Toast.LENGTH_LONG).show()
+                } else {
+                    android.util.Log.e("DiagnosticTest", "❌ NO DATA in RailwayGate/current!")
+                    Toast.makeText(this, "❌ No data in RailwayGate/current", Toast.LENGTH_LONG).show()
+                }
+            }
+            .addOnFailureListener { e ->
+                android.util.Log.e("DiagnosticTest", "❌ Failed to read: ${e.message}")
+                Toast.makeText(this, "❌ Read failed: ${e.message}", Toast.LENGTH_LONG).show()
+            }
     }
 
     private fun showComplaintDialog() {

@@ -10,9 +10,10 @@ import java.util.*
 
 class RailwayCrossingRepository private constructor() {
     
-    private val database: FirebaseDatabase = FirebaseDatabase.getInstance("https://iot-implementation-e7fcd-default-rtdb.firebaseio.com")
-    private val logsRef: DatabaseReference = database.getReference("logs")
-    private val storedLogsRef: DatabaseReference = database.getReference("storedLogs")
+    // Use the Firebase URL from google-services.json
+    private val database: FirebaseDatabase = FirebaseDatabase.getInstance()
+    private val logsRef: DatabaseReference = database.getReference("RailwayGate/current")
+    private val storedLogsRef: DatabaseReference = database.getReference("RailwayGate/history")
     
     // LiveData for UI
     private val _trainStatus = MutableLiveData<String>()
@@ -47,32 +48,45 @@ class RailwayCrossingRepository private constructor() {
     )
     
     init {
+        // Set initial values
+        setDefaultValues()
+        // Setup Firebase listeners
         setupListeners()
     }
     
     private fun setupListeners() {
         Log.d(TAG, "Setting up Firebase listeners for Railway Crossing")
+        Log.d(TAG, "Firebase Database URL: ${database.reference.toString()}")
+        Log.d(TAG, "Listening to path: RailwayGate/current/")
+        Log.d(TAG, "Full reference: ${logsRef.toString()}")
         
-        // Listen to logs for real-time updates
-        logsRef.limitToLast(1).addValueEventListener(object : ValueEventListener {
+        // Listen to RailwayGate/current for real-time updates
+        logsRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
+                Log.d(TAG, "onDataChange called - data exist: ${snapshot.exists()}")
+                
                 if (!snapshot.exists()) {
-                    Log.d(TAG, "No log data available")
+                    Log.w(TAG, "No data available in Firebase RailwayGate/current")
                     setDefaultValues()
                     return
                 }
                 
-                snapshot.children.lastOrNull()?.let { latestLog ->
-                    processLatestLog(latestLog)
+                Log.d(TAG, "Current railway data found")
+                snapshot.children.forEach { field ->
+                    Log.d(TAG, "  ${field.key} = ${field.value}")
                 }
+                
+                processLatestLog(snapshot)
             }
             
             override fun onCancelled(error: DatabaseError) {
                 Log.e(TAG, "Failed to read logs: ${error.message}")
+                Log.e(TAG, "Error code: ${error.code}, Details: ${error.details}")
+                setDefaultValues()
             }
         })
         
-        // Listen to stored logs for event log display
+        // Listen to RailwayGate/history for event log display
         storedLogsRef.orderByKey().limitToLast(20)
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
@@ -80,20 +94,20 @@ class RailwayCrossingRepository private constructor() {
                     
                     snapshot.children.forEach { child ->
                         try {
-                            val time = child.child("time").getValue(String::class.java) ?: ""
+                            val datetime = child.child("datetime").getValue(String::class.java) ?: ""
                             val event = child.child("event").getValue(String::class.java) ?: ""
-                            val gateStatus = child.child("gateStatus").getValue(String::class.java) ?: ""
+                            val gateStatus = child.child("gate_status").getValue(String::class.java) ?: ""
                             
                             val eventText = eventMap[event] ?: event
                             val description = if (gateStatus.isNotEmpty()) {
-                                "$eventText: $gateStatus"
+                                "$eventText - Gate: ${gateMap[gateStatus] ?: gateStatus}"
                             } else {
                                 eventText
                             }
                             
                             if (description.isNotEmpty()) {
                                 events.add(Event(
-                                    timestamp = time,
+                                    timestamp = datetime,
                                     description = description
                                 ))
                             }
@@ -114,21 +128,43 @@ class RailwayCrossingRepository private constructor() {
     
     private fun processLatestLog(logSnapshot: DataSnapshot) {
         try {
+            Log.d(TAG, "Processing current railway data")
+            
             val event = logSnapshot.child("event").getValue(String::class.java) ?: "system_reset"
             val gateStatus = logSnapshot.child("gate_status").getValue(String::class.java) ?: "opening"
-            val speed = logSnapshot.child("speed").getValue(String::class.java) ?: "0.00"
-            val eta = logSnapshot.child("eta").getValue(String::class.java) ?: "0.00"
+            val direction = logSnapshot.child("direction").getValue(String::class.java) ?: ""
+            val sensor = logSnapshot.child("sensor").value?.toString() ?: ""
+            
+            // Speed and ETA - matching ESP32 field names: speed_kmh and eta_sec
+            val speedRaw = logSnapshot.child("speed_kmh").value
+            val speed = when (speedRaw) {
+                is Double -> String.format("%.2f", speedRaw)
+                is Long -> speedRaw.toDouble().toString()
+                is String -> speedRaw
+                else -> "0.00"
+            }
+            
+            val etaRaw = logSnapshot.child("eta_sec").value
+            val eta = when (etaRaw) {
+                is Double -> String.format("%.2f", etaRaw)
+                is Long -> etaRaw.toDouble().toString()
+                is String -> etaRaw
+                else -> "0.00"
+            }
+            
             val timestamp = logSnapshot.child("timestamp").getValue(Long::class.java) ?: 0L
             
+            Log.d(TAG, "Parsed - Event: $event, Gate: $gateStatus, Direction: $direction, Sensor: $sensor, Speed: $speed, ETA: $eta")
+            
             // Update train status
-            val trainStatusText = eventMap[event] ?: "Loading Update..."
+            val trainStatusText = eventMap[event] ?: "Unknown Event"
             _trainStatus.postValue(trainStatusText)
             
             // Update gate status
             val gateStatusText = if (event == "system_reset") {
                 "Open"
             } else {
-                gateMap[gateStatus] ?: gateStatus
+                gateMap[gateStatus] ?: gateStatus.replaceFirstChar { it.uppercase() }
             }
             _gateStatus.postValue(gateStatusText)
             
@@ -153,10 +189,11 @@ class RailwayCrossingRepository private constructor() {
                 .format(Date())
             _lastUpdate.postValue(currentTime)
             
-            Log.d(TAG, "Updated - Train: $trainStatusText, Gate: $gateStatusText, Speed: $speedValue, ETA: $etaValue")
+            Log.d(TAG, "UI Updated - Train: $trainStatusText, Gate: $gateStatusText, Speed: $speedValue, ETA: $etaValue")
             
         } catch (e: Exception) {
-            Log.e(TAG, "Error processing log: ${e.message}")
+            Log.e(TAG, "Error processing log: ${e.message}", e)
+            setDefaultValues()
         }
     }
     
