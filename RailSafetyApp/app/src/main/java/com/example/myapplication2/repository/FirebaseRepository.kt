@@ -55,7 +55,7 @@ class FirebaseRepository {
         // Listen for train status changes
         metricsRef.child("train_status").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val value = snapshot.getValue(String::class.java) ?: "0"
+                val value = snapshot.child("value").getValue(String::class.java) ?: "0"
                 _trainStatus.postValue(value)
                 Log.d(TAG, "Train Status updated: $value")
             }
@@ -68,7 +68,7 @@ class FirebaseRepository {
         // Listen for track condition changes
         metricsRef.child("track_condition").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val value = snapshot.getValue(String::class.java) ?: "0%"
+                val value = snapshot.child("value").getValue(String::class.java) ?: "0%"
                 _trackCondition.postValue(value)
                 Log.d(TAG, "Track Condition updated: $value")
             }
@@ -81,7 +81,7 @@ class FirebaseRepository {
         // Listen for active alerts count
         metricsRef.child("active_alerts_count").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val value = snapshot.getValue(String::class.java) ?: "0"
+                val value = snapshot.child("value").getValue(String::class.java) ?: "0"
                 _activeAlerts.postValue(value)
                 Log.d(TAG, "Active Alerts updated: $value")
             }
@@ -94,7 +94,7 @@ class FirebaseRepository {
         // Listen for safety score changes
         metricsRef.child("safety_score").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                val value = snapshot.getValue(String::class.java) ?: "0"
+                val value = snapshot.child("value").getValue(String::class.java) ?: "0"
                 _safetyScore.postValue(value)
                 Log.d(TAG, "Safety Score updated: $value")
             }
@@ -104,65 +104,39 @@ class FirebaseRepository {
             }
         })
         
-        // Listen for incidents
-        incidentsRef.orderByChild("timestamp").limitToLast(10)
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val incidentsList = mutableListOf<Incident>()
-                    snapshot.children.forEach { child ->
-                        try {
-                            val incident = Incident(
-                                id = child.key ?: "",
-                                title = child.child("title").getValue(String::class.java) ?: "",
-                                description = child.child("description").getValue(String::class.java) ?: "",
-                                timestamp = child.child("timestamp").getValue(String::class.java) ?: "",
-                                severity = child.child("severity").getValue(String::class.java) ?: "LOW",
-                                location = child.child("location").getValue(String::class.java) ?: "",
-                                status = child.child("status").getValue(String::class.java) ?: "Pending"
-                            )
-                            incidentsList.add(incident)
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Error parsing incident: ${e.message}")
-                        }
-                    }
-                    _incidents.postValue(incidentsList.reversed())
-                    Log.d(TAG, "Incidents updated: ${incidentsList.size} items")
+        // Listen for new incidents
+        incidentsRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val incidentList = mutableListOf<Incident>()
+                for (incidentSnapshot in snapshot.children) {
+                    val incident = incidentSnapshot.child("value").getValue(Incident::class.java)
+                    incident?.let { incidentList.add(it) }
                 }
-                
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e(TAG, "Incidents listener cancelled: ${error.message}")
+                _incidents.postValue(incidentList)
+                Log.d(TAG, "Incidents updated: ${incidentList.size} incidents loaded.")
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Incidents listener cancelled: ${error.message}")
+            }
+        })
+
+        // Listen for new alerts
+        alertsRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val alertList = mutableListOf<Alert>()
+                for (alertSnapshot in snapshot.children) {
+                    val alert = alertSnapshot.child("value").getValue(Alert::class.java)
+                    alert?.let { alertList.add(it) }
                 }
-            })
-        
-        // Listen for alerts
-        alertsRef.orderByChild("timestamp").limitToLast(20)
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val alertsList = mutableListOf<Alert>()
-                    snapshot.children.forEach { child ->
-                        try {
-                            val alert = Alert(
-                                id = child.key ?: "",
-                                title = child.child("title").getValue(String::class.java) ?: "",
-                                message = child.child("message").getValue(String::class.java) ?: "",
-                                timestamp = child.child("timestamp").getValue(String::class.java) ?: "",
-                                priority = child.child("priority").getValue(String::class.java) ?: "LOW",
-                                type = child.child("type").getValue(String::class.java) ?: "System",
-                                isRead = child.child("isRead").getValue(Boolean::class.java) ?: false
-                            )
-                            alertsList.add(alert)
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Error parsing alert: ${e.message}")
-                        }
-                    }
-                    _alerts.postValue(alertsList.reversed())
-                    Log.d(TAG, "Alerts updated: ${alertsList.size} items")
-                }
-                
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e(TAG, "Alerts listener cancelled: ${error.message}")
-                }
-            })
+                _alerts.postValue(alertList)
+                Log.d(TAG, "Alerts updated: ${alertList.size} alerts loaded.")
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Alerts listener cancelled: ${error.message}")
+            }
+        })
     }
     
     // Function to initialize sample data in Firebase
