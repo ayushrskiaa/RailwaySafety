@@ -63,6 +63,9 @@ class RailwayCrossingRepository private constructor() {
         // Listen to RailwayGate/current for real-time updates
         logsRef.addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
+                Log.d(TAG, "Snapshot value: ${snapshot.value}")
+                // Diagnostic Toast (uncomment if you have context):
+                // Toast.makeText(context, "Data: ${snapshot.value}", Toast.LENGTH_LONG).show()
                 Log.d(TAG, "onDataChange called - data exist: ${snapshot.exists()}")
                 
                 if (!snapshot.exists()) {
@@ -80,6 +83,9 @@ class RailwayCrossingRepository private constructor() {
             }
             
             override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Error: ${error.message}")
+                // Diagnostic Toast (uncomment if you have context):
+                // Toast.makeText(context, "Firebase error: ${error.message}", Toast.LENGTH_LONG).show()
                 Log.e(TAG, "Failed to read logs: ${error.message}")
                 Log.e(TAG, "Error code: ${error.code}, Details: ${error.details}")
                 setDefaultValues()
