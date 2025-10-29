@@ -25,7 +25,7 @@ class SlideshowViewModel : ViewModel() {
     private fun observeFirebaseAlerts() {
         // Use MediatorLiveData to observe Firebase data
         val mediator = MediatorLiveData<List<Alert>>()
-        mediator.addSource(firebaseRepository.allAlerts) { alerts ->
+        mediator.addSource(firebaseRepository.alerts) { alerts: List<Alert> ->
             allAlertsList = alerts
             applyFilter(alerts, currentFilter)
         }

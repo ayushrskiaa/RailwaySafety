@@ -12,22 +12,43 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.Observer
 import com.example.myapplication2.R
-import com.example.myapplication2.repository.FirebaseRepository
+import com.example.myapplication2.repository.RailwayCrossingRepository
 
 class NotificationService : Service() {
 
-    private lateinit var firebaseRepository: FirebaseRepository
-    private val trainStatusObserver = Observer<Boolean> { isApproaching ->
-        if (isApproaching) {
+    private lateinit var railwayRepository: RailwayCrossingRepository
+    private var lastTrainStatus = "Loading Update..."
+    private var hasNotifiedForCurrentApproach = false
+    
+    private val trainStatusObserver = Observer<String> { status ->
+        Log.d("NotificationService", "Train status changed to: $status")
+        
+        // Check if train is approaching (not crossed, not reset, not loading)
+        val isApproaching = status.contains("Approaching", ignoreCase = true) || 
+                           status.contains("Moving", ignoreCase = true)
+        
+        // Send notification only when train starts approaching (state change)
+        if (isApproaching && !hasNotifiedForCurrentApproach && 
+            lastTrainStatus != status) {
             sendTrainApproachingNotification()
+            hasNotifiedForCurrentApproach = true
         }
+        
+        // Reset the flag when train crosses or resets
+        if (status.contains("Crossed", ignoreCase = true) || 
+            status.contains("No Train", ignoreCase = true) ||
+            status.contains("system_reset", ignoreCase = true)) {
+            hasNotifiedForCurrentApproach = false
+        }
+        
+        lastTrainStatus = status
     }
 
     override fun onCreate() {
         super.onCreate()
-        firebaseRepository = FirebaseRepository.getInstance()
-        firebaseRepository.gateStatus.observeForever(trainStatusObserver)
-        Log.d("NotificationService", "Service Created and Observer attached.")
+        railwayRepository = RailwayCrossingRepository.getInstance()
+        railwayRepository.trainStatus.observeForever(trainStatusObserver)
+        Log.d("NotificationService", "Service Created and Observer attached to RailwayCrossingRepository.")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -49,7 +70,7 @@ class NotificationService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
-        firebaseRepository.gateStatus.removeObserver(trainStatusObserver)
+        railwayRepository.trainStatus.removeObserver(trainStatusObserver)
         Log.d("NotificationService", "Service Destroyed and Observer removed.")
     }
 

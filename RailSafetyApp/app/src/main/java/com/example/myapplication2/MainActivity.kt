@@ -1,6 +1,7 @@
 package com.example.myapplication2
 
 import android.os.Bundle
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
@@ -210,23 +211,46 @@ class MainActivity : AppCompatActivity() {
         val builder = AlertDialog.Builder(this)
         builder.setTitle("Report Railway Crossing Issue")
 
-        // Create input field for complaint details
-        val input = EditText(this)
-        input.hint = "Describe the issue..."
-        input.setPadding(50, 40, 50, 40)
+        // Create a container layout for multiple input fields
+        val container = android.widget.LinearLayout(this)
+        container.orientation = android.widget.LinearLayout.VERTICAL
+        container.setPadding(50, 20, 50, 20)
+
+        // User email input (optional)
+        val emailInput = EditText(this)
+        emailInput.hint = "Your email (optional)"
+        emailInput.inputType = android.text.InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+        emailInput.setPadding(20, 30, 20, 30)
+        container.addView(emailInput)
+
+        // User phone input (optional)
+        val phoneInput = EditText(this)
+        phoneInput.hint = "Your phone (optional)"
+        phoneInput.inputType = android.text.InputType.TYPE_CLASS_PHONE
+        phoneInput.setPadding(20, 30, 20, 30)
+        container.addView(phoneInput)
+
+        // Complaint details input (required)
+        val detailsInput = EditText(this)
+        detailsInput.hint = "Describe the issue..."
+        detailsInput.setPadding(20, 30, 20, 30)
+        detailsInput.minLines = 3
+        container.addView(detailsInput)
 
         // Set up the dialog
         builder.setSingleChoiceItems(complaintTypes, 0) { _, which ->
             selectedComplaintType = complaintTypes[which]
         }
 
-        builder.setView(input)
+        builder.setView(container)
 
         builder.setPositiveButton("Submit") { dialog, _ ->
-            val complaintDetails = input.text.toString().trim()
+            val complaintDetails = detailsInput.text.toString().trim()
+            val userEmail = emailInput.text.toString().trim()
+            val userPhone = phoneInput.text.toString().trim()
 
             if (complaintDetails.isNotEmpty()) {
-                submitComplaint(selectedComplaintType, complaintDetails)
+                submitComplaint(selectedComplaintType, complaintDetails, userEmail, userPhone)
             } else {
                 Toast.makeText(this, "Please provide complaint details", Toast.LENGTH_SHORT).show()
             }
@@ -240,7 +264,7 @@ class MainActivity : AppCompatActivity() {
         builder.show()
     }
 
-    private fun submitComplaint(type: String, details: String) {
+    private fun submitComplaint(type: String, details: String, userEmail: String = "", userPhone: String = "") {
         val database = FirebaseDatabase.getInstance("https://iot-implementation-e7fcd-default-rtdb.firebaseio.com")
         val complaintsRef = database.getReference("complaints")
 
@@ -250,7 +274,9 @@ class MainActivity : AppCompatActivity() {
             "type" to type,
             "details" to details,
             "timestamp" to timestamp,
-            "status" to "pending"
+            "status" to "pending",
+            "userEmail" to userEmail.ifEmpty { "Not provided" },
+            "userPhone" to userPhone.ifEmpty { "Not provided" }
         )
 
         complaintsRef.push().setValue(complaint)
@@ -258,9 +284,9 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "✅ Complaint submitted successfully", Toast.LENGTH_LONG).show()
                 
                 // Send email to maintainer
-                sendEmailToMaintainer(type, details, timestamp)
+                sendEmailToMaintainer(type, details, timestamp, userEmail, userPhone)
                 
-                Snackbar.make(binding.root, "Complaint recorded. Opening email app...", Snackbar.LENGTH_LONG)
+                Snackbar.make(binding.root, "Complaint recorded. Sending email notification...", Snackbar.LENGTH_LONG)
                     .setAction("OK", null)
                     .show()
             }
@@ -269,11 +295,11 @@ class MainActivity : AppCompatActivity() {
             }
     }
     
-    private fun sendEmailToMaintainer(type: String, details: String, timestamp: String) {
+    private fun sendEmailToMaintainer(type: String, details: String, timestamp: String, userEmail: String = "", userPhone: String = "") {
         // Send email directly using SMTP
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val emailSent = sendEmailViaSMTP(type, details, timestamp)
+                val emailSent = sendEmailViaSMTP(type, details, timestamp, userEmail, userPhone)
                 withContext(Dispatchers.Main) {
                     if (emailSent) {
                         Toast.makeText(this@MainActivity, "📧 Email sent successfully to maintainer!", Toast.LENGTH_LONG).show()
@@ -289,15 +315,30 @@ class MainActivity : AppCompatActivity() {
         }
     }
     
-    private fun sendEmailViaSMTP(type: String, details: String, timestamp: String): Boolean {
+    private fun sendEmailViaSMTP(type: String, details: String, timestamp: String, userEmail: String = "", userPhone: String = ""): Boolean {
         return try {
+            Log.d("EmailSMTP", "📤 Starting SMTP email send...")
+            Log.d("EmailSMTP", "Sender: $SENDER_EMAIL → Recipient: $MAINTAINER_EMAIL")
+            
             // SMTP Configuration for Gmail
             val props = Properties().apply {
                 put("mail.smtp.host", "smtp.gmail.com")
                 put("mail.smtp.port", "587")
                 put("mail.smtp.auth", "true")
                 put("mail.smtp.starttls.enable", "true")
+                put("mail.smtp.starttls.required", "true")
+                
+                // Enhanced SSL/TLS settings
+                put("mail.smtp.ssl.protocols", "TLSv1.2")
+                put("mail.smtp.ssl.trust", "smtp.gmail.com")
+                
+                // Timeout settings (10 seconds each)
+                put("mail.smtp.connectiontimeout", "10000")
+                put("mail.smtp.timeout", "10000")
+                put("mail.smtp.writetimeout", "10000")
             }
+            
+            Log.d("EmailSMTP", "✅ Creating mail session...")
             
             // Create session with authentication
             val session = Session.getInstance(props, object : Authenticator() {
@@ -305,6 +346,18 @@ class MainActivity : AppCompatActivity() {
                     return PasswordAuthentication(SENDER_EMAIL, SENDER_PASSWORD)
                 }
             })
+            
+            // Enable debug mode for detailed SMTP conversation logging
+            session.debug = true
+            
+            Log.d("EmailSMTP", "✅ Creating message...")
+            
+            // Build user contact information section
+            val contactInfo = buildString {
+                if (userEmail.isNotEmpty()) append("\n📧 Email: $userEmail")
+                if (userPhone.isNotEmpty()) append("\n📱 Phone: $userPhone")
+                if (userEmail.isEmpty() && userPhone.isEmpty()) append("\nAnonymous User")
+            }
             
             // Create email message
             val message = MimeMessage(session).apply {
@@ -320,7 +373,9 @@ Railway Crossing Safety Alert
 Type: $type
 Time: $timestamp
 
-Description:
+👤 User Contact:$contactInfo
+
+📝 Description:
 $details
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -331,10 +386,36 @@ Maintainer: $MAINTAINER_EMAIL
                 """.trimIndent())
             }
             
+            Log.d("EmailSMTP", "✅ Connecting to SMTP server...")
+            
             // Send email
             Transport.send(message)
+            
+            Log.d("EmailSMTP", "✅ Email sent successfully!")
             true
+            
+        } catch (e: javax.mail.AuthenticationFailedException) {
+            Log.e("EmailSMTP", "❌ Authentication failed: ${e.message}")
+            Log.e("EmailSMTP", "💡 Check: 1) App Password is correct 2) 2-Step Verification is enabled")
+            e.printStackTrace()
+            false
+        } catch (e: javax.mail.MessagingException) {
+            Log.e("EmailSMTP", "❌ Messaging error: ${e.message}")
+            Log.e("EmailSMTP", "💡 Check: SMTP settings and network connection")
+            e.printStackTrace()
+            false
+        } catch (e: java.net.UnknownHostException) {
+            Log.e("EmailSMTP", "❌ Network error: Cannot reach smtp.gmail.com")
+            Log.e("EmailSMTP", "💡 Check: Internet connection")
+            e.printStackTrace()
+            false
+        } catch (e: java.net.SocketTimeoutException) {
+            Log.e("EmailSMTP", "❌ Timeout: Connection timed out")
+            Log.e("EmailSMTP", "💡 Check: Network speed and firewall settings")
+            e.printStackTrace()
+            false
         } catch (e: Exception) {
+            Log.e("EmailSMTP", "❌ Unexpected error: ${e.javaClass.simpleName} - ${e.message}")
             e.printStackTrace()
             false
         }
