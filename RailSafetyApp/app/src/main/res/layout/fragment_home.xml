@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F5F5"
+    android:background="@color/background_color"
     tools:context=".ui.home.HomeFragment">
 
     <LinearLayout
@@ -13,14 +13,14 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Dashboard Header - Matching Web UI -->
+        <!-- Dashboard Header -->
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="4dp"
-            android:backgroundTint="#3C4858">
+            android:layout_marginBottom="20dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="8dp"
+            android:backgroundTint="@color/colorPrimary">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -32,17 +32,17 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Railway Crossing Status Dashboard"
-                    android:textSize="24sp"
+                    android:text="Railway Crossing Monitor"
+                    android:textSize="26sp"
                     android:textStyle="bold"
-                    android:textColor="#FFFFFF" />
+                    android:textColor="@color/white" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Real-time monitoring of train movements and gate status"
-                    android:textSize="14sp"
-                    android:textColor="#B0B0B0"
+                    android:text="Real-time safety monitoring system"
+                    android:textSize="12sp"
+                    android:textColor="@color/colorAccent"
                     android:layout_marginTop="8dp" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
@@ -58,12 +58,12 @@
             <!-- Train Status Card -->
             <androidx.cardview.widget.CardView
                 android:layout_width="0dp"
-                android:layout_height="160dp"
+                android:layout_height="170dp"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="4dp"
-                android:backgroundTint="#FFFFFF">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="6dp"
+                android:backgroundTint="@color/card_background_color">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -76,34 +76,34 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="TRAIN STATUS"
-                        android:textSize="14sp"
+                        android:textSize="12sp"
                         android:textStyle="bold"
-                        android:textColor="#666666"
-                        android:layout_marginBottom="16dp" />
+                        android:textColor="@color/text_color_secondary"
+                        android:layout_marginBottom="12dp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="🚂"
-                        android:textSize="48sp"
+                        android:textSize="52sp"
                         android:layout_marginBottom="8dp" />
 
                     <TextView
                         android:id="@+id/train_status_value"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="LOADING UPDATE..."
+                        android:text="LOADING..."
                         android:textSize="14sp"
                         android:textStyle="bold"
-                        android:textColor="#333333" />
+                        android:textColor="@color/colorPrimary" />
 
                     <TextView
                         android:id="@+id/train_status_time"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Last updated: 1:29:06 PM"
+                        android:text="Updating..."
                         android:textSize="10sp"
-                        android:textColor="#999999"
+                        android:textColor="@color/text_color_secondary"
                         android:layout_marginTop="4dp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -111,12 +111,12 @@
             <!-- Gate Status Card -->
             <androidx.cardview.widget.CardView
                 android:layout_width="0dp"
-                android:layout_height="160dp"
+                android:layout_height="170dp"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="4dp"
-                android:backgroundTint="#FFFFFF">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="6dp"
+                android:backgroundTint="@color/card_background_color">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -129,34 +129,34 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="GATE STATUS"
-                        android:textSize="14sp"
+                        android:textSize="12sp"
                         android:textStyle="bold"
-                        android:textColor="#666666"
-                        android:layout_marginBottom="16dp" />
+                        android:textColor="@color/text_color_secondary"
+                        android:layout_marginBottom="12dp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="🚧"
-                        android:textSize="48sp"
+                        android:textSize="52sp"
                         android:layout_marginBottom="8dp" />
 
                     <TextView
                         android:id="@+id/gate_status_value"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="LOADING UPDATE..."
+                        android:text="LOADING..."
                         android:textSize="14sp"
                         android:textStyle="bold"
-                        android:textColor="#333333" />
+                        android:textColor="@color/colorPrimary" />
 
                     <TextView
                         android:id="@+id/gate_status_time"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Last updated: 1:29:06 PM"
+                        android:text="Updating..."
                         android:textSize="10sp"
-                        android:textColor="#999999"
+                        android:textColor="@color/text_color_secondary"
                         android:layout_marginTop="4dp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -173,12 +173,12 @@
             <!-- Current Speed Card -->
             <androidx.cardview.widget.CardView
                 android:layout_width="0dp"
-                android:layout_height="140dp"
+                android:layout_height="150dp"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="4dp"
-                android:backgroundTint="#FFFFFF">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="6dp"
+                android:backgroundTint="@color/card_background_color">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -191,9 +191,9 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="CURRENT SPEED"
-                        android:textSize="14sp"
+                        android:textSize="12sp"
                         android:textStyle="bold"
-                        android:textColor="#666666"
+                        android:textColor="@color/text_color_secondary"
                         android:layout_marginBottom="16dp" />
 
                     <TextView
@@ -201,9 +201,9 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0.00"
-                        android:textSize="42sp"
+                        android:textSize="48sp"
                         android:textStyle="bold"
-                        android:textColor="#007BFF" />
+                        android:textColor="@color/colorAccent" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -211,7 +211,7 @@
                         android:text="KM/H"
                         android:textSize="14sp"
                         android:textStyle="bold"
-                        android:textColor="#666666"
+                        android:textColor="@color/text_color_secondary"
                         android:layout_marginTop="4dp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -219,12 +219,12 @@
             <!-- ETA to Gate Card -->
             <androidx.cardview.widget.CardView
                 android:layout_width="0dp"
-                android:layout_height="140dp"
+                android:layout_height="150dp"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="4dp"
-                android:backgroundTint="#FFFFFF">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="6dp"
+                android:backgroundTint="@color/card_background_color">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -237,9 +237,9 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="ETA TO GATE"
-                        android:textSize="14sp"
+                        android:textSize="12sp"
                         android:textStyle="bold"
-                        android:textColor="#666666"
+                        android:textColor="@color/text_color_secondary"
                         android:layout_marginBottom="16dp" />
 
                     <TextView
@@ -247,9 +247,9 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0.00"
-                        android:textSize="42sp"
+                        android:textSize="48sp"
                         android:textStyle="bold"
-                        android:textColor="#007BFF" />
+                        android:textColor="@color/colorAccent" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -257,7 +257,7 @@
                         android:text="SECONDS"
                         android:textSize="14sp"
                         android:textStyle="bold"
-                        android:textColor="#666666"
+                        android:textColor="@color/text_color_secondary"
                         android:layout_marginTop="4dp" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -267,29 +267,30 @@
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="4dp"
-            android:backgroundTint="#FFFFFF">
+            app:cardCornerRadius="12dp"
+            app:cardElevation="6dp"
+            android:backgroundTint="@color/card_background_color">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <TextView
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="EVENT LOG"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="#333333"
+                    android:background="@color/colorPrimary"
                     android:padding="16dp"
-                    android:gravity="center" />
+                    android:gravity="center">
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#E0E0E0" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📋 EVENT LOG"
+                        android:textSize="18sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/white" />
+                </LinearLayout>
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/event_log_recycler"
