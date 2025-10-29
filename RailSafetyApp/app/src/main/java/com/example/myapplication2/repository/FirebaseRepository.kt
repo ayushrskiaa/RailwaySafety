@@ -7,6 +7,7 @@ import com.example.myapplication2.models.Alert
 import com.example.myapplication2.models.Incident
 import com.google.firebase.database.*
 import kotlinx.coroutines.tasks.await
+import java.text.SimpleDateFormat
 
 class FirebaseRepository {
     
@@ -15,6 +16,8 @@ class FirebaseRepository {
     private val incidentsRef: DatabaseReference = database.getReference("incidents")
     private val alertsRef: DatabaseReference = database.getReference("alerts")
     private val gateRef: DatabaseReference = database.getReference("gate_status")
+    private val complaintsRef: DatabaseReference = database.getReference("complaints")
+    private val gateEventsRef: DatabaseReference = database.getReference("gate_events")
     
     companion object {
         private const val TAG = "FirebaseRepository"
@@ -50,6 +53,12 @@ class FirebaseRepository {
 
     private val _gateStatus = MutableLiveData<Boolean>()
     val gateStatus: LiveData<Boolean> = _gateStatus
+    
+    // Combined alerts including gate events and complaints
+    private val _allAlerts = MutableLiveData<List<Alert>>()
+    val allAlerts: LiveData<List<Alert>> = _allAlerts
+    
+    private val alertsList = mutableListOf<Alert>()
     
     init {
         setupRealtimeListeners()
@@ -154,6 +163,119 @@ class FirebaseRepository {
                 Log.e(TAG, "Gate status listener cancelled: ${error.message}")
             }
         })
+        
+        // Listen for gate events (open/close)
+        gateEventsRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val gateAlerts = mutableListOf<Alert>()
+                snapshot.children.forEach { eventSnapshot ->
+                    val eventType = eventSnapshot.child("event").getValue(String::class.java) ?: ""
+                    val timestamp = eventSnapshot.child("timestamp").getValue(String::class.java) ?: ""
+                    val status = eventSnapshot.child("status").getValue(String::class.java) ?: "active"
+                    
+                    if (eventType.isNotEmpty()) {
+                        val alert = Alert(
+                            id = eventSnapshot.key ?: "",
+                            title = if (eventType == "opened") "🚧 Gate Opened" else "🔒 Gate Closed",
+                            message = if (eventType == "opened") 
+                                "Railway crossing gate has been opened for traffic" 
+                            else 
+                                "Railway crossing gate has been closed - Train approaching",
+                            timestamp = formatTimestamp(timestamp),
+                            priority = if (eventType == "closed") "HIGH" else "MEDIUM",
+                            type = "Gate Event",
+                            isRead = status == "resolved"
+                        )
+                        gateAlerts.add(alert)
+                    }
+                }
+                updateCombinedAlerts("gate", gateAlerts)
+                Log.d(TAG, "Gate events loaded: ${gateAlerts.size} events")
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Gate events listener cancelled: ${error.message}")
+            }
+        })
+        
+        // Listen for complaints
+        complaintsRef.addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val complaintAlerts = mutableListOf<Alert>()
+                snapshot.children.forEach { complaintSnapshot ->
+                    val type = complaintSnapshot.child("type").getValue(String::class.java) ?: ""
+                    val details = complaintSnapshot.child("details").getValue(String::class.java) ?: ""
+                    val timestamp = complaintSnapshot.child("timestamp").getValue(String::class.java) ?: ""
+                    val status = complaintSnapshot.child("status").getValue(String::class.java) ?: "pending"
+                    
+                    if (type.isNotEmpty()) {
+                        val alert = Alert(
+                            id = complaintSnapshot.key ?: "",
+                            title = "📝 Complaint: $type",
+                            message = details,
+                            timestamp = formatTimestamp(timestamp),
+                            priority = when (status) {
+                                "pending" -> "MEDIUM"
+                                "in_progress" -> "HIGH"
+                                else -> "LOW"
+                            },
+                            type = "Complaint",
+                            isRead = status == "resolved"
+                        )
+                        complaintAlerts.add(alert)
+                    }
+                }
+                updateCombinedAlerts("complaints", complaintAlerts)
+                Log.d(TAG, "Complaints loaded: ${complaintAlerts.size} complaints")
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Complaints listener cancelled: ${error.message}")
+            }
+        })
+    }
+    
+    // Maps to store different alert types
+    private val alertsMap = mutableMapOf<String, List<Alert>>()
+    
+    private fun updateCombinedAlerts(source: String, alerts: List<Alert>) {
+        alertsMap[source] = alerts
+        
+        // Combine all alerts from different sources
+        val combined = mutableListOf<Alert>()
+        alertsMap.values.forEach { combined.addAll(it) }
+        
+        // Sort by timestamp (most recent first)
+        val sorted = combined.sortedByDescending { it.timestamp }
+        
+        _allAlerts.postValue(sorted)
+    }
+    
+    private fun formatTimestamp(timestamp: String): String {
+        if (timestamp.isEmpty()) return "Just now"
+        
+        return try {
+            // Try to parse the timestamp and format it
+            val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+            val date = sdf.parse(timestamp)
+            
+            if (date != null) {
+                val now = java.util.Date()
+                val diff = now.time - date.time
+                
+                when {
+                    diff < 60000 -> "Just now"
+                    diff < 3600000 -> "${diff / 60000} mins ago"
+                    diff < 86400000 -> "${diff / 3600000} hours ago"
+                    diff < 604800000 -> "${diff / 86400000} days ago"
+                    else -> SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault()).format(date)
+                }
+            } else {
+                timestamp
+            }
+        } catch (e: Exception) {
+            timestamp
+        }
     }
     
     // Function to initialize sample data in Firebase
@@ -299,6 +421,25 @@ class FirebaseRepository {
             }
             .addOnFailureListener { e ->
                 Log.e(TAG, "Failed to add alert: ${e.message}")
+            }
+    }
+    
+    // Function to log gate events (open/close)
+    fun logGateEvent(eventType: String) {
+        val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date())
+        
+        val gateEvent = mapOf(
+            "event" to eventType,
+            "timestamp" to timestamp,
+            "status" to "active"
+        )
+        
+        gateEventsRef.push().setValue(gateEvent)
+            .addOnSuccessListener {
+                Log.d(TAG, "Gate event logged: $eventType at $timestamp")
+            }
+            .addOnFailureListener { e ->
+                Log.e(TAG, "Failed to log gate event: ${e.message}")
             }
     }
 }

@@ -38,7 +38,11 @@ class RailwayCrossingRepository private constructor() {
         "train_detected" to "Train Approaching",
         "speed_calculated" to "Train Moving towards Gate",
         "train_crossed" to "Train Crossed",
-        "system_reset" to "No Train Nearby"
+        "system_reset" to "No Train Nearby",
+        "gate_opened" to "Gate Opened",
+        "gate_closed" to "Gate Closed",
+        "gate_opening" to "Gate Opening",
+        "gate_closing" to "Gate Closing"
     )
     
     private val gateMap = mapOf(
@@ -104,14 +108,19 @@ class RailwayCrossingRepository private constructor() {
                             val event = child.child("event").getValue(String::class.java) ?: ""
                             val gateStatus = child.child("gate_status").getValue(String::class.java) ?: ""
                             
-                            val eventText = eventMap[event] ?: event
-                            val description = if (gateStatus.isNotEmpty()) {
+                            // Use the event from eventMap, or format the raw event if not found
+                            val eventText = eventMap[event] ?: event.replace("_", " ").split(" ")
+                                .joinToString(" ") { it.replaceFirstChar { char -> char.uppercase() } }
+                            
+                            val description = if (gateStatus.isNotEmpty() && !event.startsWith("gate_")) {
+                                // For non-gate events, show gate status
                                 "$eventText - Gate: ${gateMap[gateStatus] ?: gateStatus}"
                             } else {
+                                // For gate events or events without gate status, just show the event
                                 eventText
                             }
                             
-                            if (description.isNotEmpty()) {
+                            if (description.isNotEmpty() && datetime.isNotEmpty()) {
                                 events.add(Event(
                                     timestamp = datetime,
                                     description = description

@@ -19,6 +19,9 @@ class HomeFragment : Fragment() {
     private lateinit var homeViewModel: HomeViewModel
     private lateinit var eventAdapter: EventAdapter
     
+    // Track max ETA for progress calculation
+    private var maxETA: Float = 30.0f // Default max ETA in seconds (adjusts dynamically)
+    
     companion object {
         private const val TAG = "HomeFragment"
     }
@@ -75,6 +78,7 @@ class HomeFragment : Fragment() {
         homeViewModel.etaToGate.observe(viewLifecycleOwner) { eta ->
             Log.d(TAG, "ETA updated: $eta")
             binding.etaToGateValue.text = eta
+            updateETAProgress(eta)
         }
         
         // Observe last update time
@@ -91,6 +95,47 @@ class HomeFragment : Fragment() {
         }
         
         Log.d(TAG, "All observers set up successfully")
+    }
+    
+    private fun updateETAProgress(etaString: String) {
+        try {
+            val eta = etaString.toFloatOrNull() ?: 0f
+            
+            // Update max ETA if current ETA is higher
+            if (eta > maxETA) {
+                maxETA = eta
+            }
+            
+            // Calculate progress percentage (inverse - as ETA decreases, progress increases)
+            val progress = if (maxETA > 0) {
+                // Progress goes from 0 to 100 as ETA goes from maxETA to 0
+                ((maxETA - eta) / maxETA * 100).toInt().coerceIn(0, 100)
+            } else {
+                0
+            }
+            
+            // Update progress bar
+            binding.etaProgressBar.progress = progress
+            
+            // Change color based on proximity
+            val progressColor = when {
+                eta <= 5.0f -> android.graphics.Color.parseColor("#F44336") // Red - Very close
+                eta <= 10.0f -> android.graphics.Color.parseColor("#FF9933") // Orange - Close
+                eta <= 20.0f -> android.graphics.Color.parseColor("#FFC107") // Yellow - Approaching
+                else -> android.graphics.Color.parseColor("#FF9933") // Orange default
+            }
+            binding.etaProgressBar.progressTintList = android.content.res.ColorStateList.valueOf(progressColor)
+            
+            // Reset maxETA if train has crossed (ETA is 0 and was tracking)
+            if (eta == 0f && maxETA > 0) {
+                maxETA = 30.0f // Reset to default
+            }
+            
+            Log.d(TAG, "ETA Progress: $progress% (ETA: $eta, Max: $maxETA)")
+            
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating ETA progress: ${e.message}")
+        }
     }
 
     override fun onDestroyView() {

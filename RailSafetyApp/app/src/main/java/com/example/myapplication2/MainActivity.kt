@@ -2,6 +2,7 @@ package com.example.myapplication2
 
 import android.os.Bundle
 import android.view.Menu
+import android.view.MenuItem
 import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -15,6 +16,7 @@ import androidx.navigation.ui.setupWithNavController
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.appcompat.app.AppCompatActivity
 import com.example.myapplication2.databinding.ActivityMainBinding
+import com.example.myapplication2.utils.TestDataPopulator
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -112,6 +114,32 @@ class MainActivity : AppCompatActivity() {
         // Inflate the menu; this adds items to the action bar if it is present.
         menuInflater.inflate(R.menu.main, menu)
         return true
+    }
+    
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_populate_test_data -> {
+                populateTestData()
+                true
+            }
+            R.id.action_settings -> {
+                // Handle settings action
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+    
+    private fun populateTestData() {
+        AlertDialog.Builder(this)
+            .setTitle("Populate Test Data")
+            .setMessage("This will add sample gate events and complaints to the database for testing. Continue?")
+            .setPositiveButton("Yes") { _, _ ->
+                TestDataPopulator.populateAllSampleData()
+                Toast.makeText(this, "✅ Test data populated! Check Alerts tab.", Toast.LENGTH_LONG).show()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     override fun onSupportNavigateUp(): Boolean {

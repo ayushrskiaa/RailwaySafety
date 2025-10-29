@@ -47,30 +47,34 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- First Row: Train Status and Gate Status -->
-        <LinearLayout
+        <!-- Train Status Card -->
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:weightSum="2"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="6dp"
+            android:backgroundTint="@color/card_background_color">
 
-            <!-- Train Status Card -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="0dp"
-                android:layout_height="170dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="8dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="6dp"
-                android:backgroundTint="@color/card_background_color">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_train_status"
+                    android:contentDescription="Train Status Icon"
+                    android:layout_marginEnd="16dp" />
 
                 <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:padding="16dp"
-                    android:gravity="center">
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -79,21 +83,14 @@
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_color_secondary"
-                        android:layout_marginBottom="12dp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🚂"
-                        android:textSize="52sp"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_marginBottom="4dp" />
 
                     <TextView
                         android:id="@+id/train_status_value"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="LOADING..."
-                        android:textSize="14sp"
+                        android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/colorPrimary" />
 
@@ -104,26 +101,39 @@
                         android:text="Updating..."
                         android:textSize="10sp"
                         android:textColor="@color/text_color_secondary"
-                        android:layout_marginTop="4dp" />
+                        android:layout_marginTop="2dp" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
 
-            <!-- Gate Status Card -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="0dp"
-                android:layout_height="170dp"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="6dp"
-                android:backgroundTint="@color/card_background_color">
+        <!-- Gate Status Card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="6dp"
+            android:backgroundTint="@color/card_background_color">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_gate_status"
+                    android:contentDescription="Gate Status Icon"
+                    android:layout_marginEnd="16dp" />
 
                 <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:padding="16dp"
-                    android:gravity="center">
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -132,21 +142,14 @@
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_color_secondary"
-                        android:layout_marginBottom="12dp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="🚧"
-                        android:textSize="52sp"
-                        android:layout_marginBottom="8dp" />
+                        android:layout_marginBottom="4dp" />
 
                     <TextView
                         android:id="@+id/gate_status_value"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="LOADING..."
-                        android:textSize="14sp"
+                        android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/colorPrimary" />
 
@@ -157,35 +160,39 @@
                         android:text="Updating..."
                         android:textSize="10sp"
                         android:textColor="@color/text_color_secondary"
-                        android:layout_marginTop="4dp" />
+                        android:layout_marginTop="2dp" />
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
-        </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
 
-        <!-- Second Row: Current Speed and ETA to Gate -->
-        <LinearLayout
+        <!-- Current Speed Card -->
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:weightSum="2"
-            android:layout_marginBottom="16dp">
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="6dp"
+            android:backgroundTint="@color/card_background_color">
 
-            <!-- Current Speed Card -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="0dp"
-                android:layout_height="150dp"
-                android:layout_weight="1"
-                android:layout_marginEnd="8dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="6dp"
-                android:backgroundTint="@color/card_background_color">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_speed"
+                    android:contentDescription="Speed Icon"
+                    android:layout_marginEnd="16dp" />
 
                 <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:padding="16dp"
-                    android:gravity="center">
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -194,44 +201,64 @@
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_color_secondary"
-                        android:layout_marginBottom="16dp" />
+                        android:layout_marginBottom="4dp" />
 
-                    <TextView
-                        android:id="@+id/current_speed_value"
+                    <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="0.00"
-                        android:textSize="48sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/colorAccent" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="KM/H"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/text_color_secondary"
-                        android:layout_marginTop="4dp" />
+                        <TextView
+                            android:id="@+id/current_speed_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0.00"
+                            android:textSize="36sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/colorAccent" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" KM/H"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_color_secondary"
+                            android:layout_marginStart="8dp" />
+                    </LinearLayout>
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
 
-            <!-- ETA to Gate Card -->
-            <androidx.cardview.widget.CardView
-                android:layout_width="0dp"
-                android:layout_height="150dp"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                app:cardCornerRadius="12dp"
-                app:cardElevation="6dp"
-                android:backgroundTint="@color/card_background_color">
+        <!-- ETA to Gate Card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="6dp"
+            android:backgroundTint="@color/card_background_color">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_timer"
+                    android:contentDescription="ETA Timer Icon"
+                    android:layout_marginEnd="16dp" />
 
                 <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:padding="16dp"
-                    android:gravity="center">
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -240,28 +267,78 @@
                         android:textSize="12sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_color_secondary"
-                        android:layout_marginBottom="16dp" />
+                        android:layout_marginBottom="4dp" />
 
-                    <TextView
-                        android:id="@+id/eta_to_gate_value"
+                    <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="0.00"
-                        android:textSize="48sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/colorAccent" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="8dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                        <TextView
+                            android:id="@+id/eta_to_gate_value"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0.00"
+                            android:textSize="36sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/colorAccent" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" SECONDS"
+                            android:textSize="14sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_color_secondary"
+                            android:layout_marginStart="8dp" />
+                    </LinearLayout>
+
+                    <!-- Progress Bar for ETA -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="SECONDS"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/text_color_secondary"
-                        android:layout_marginTop="4dp" />
+                        android:orientation="vertical">
+
+                        <ProgressBar
+                            android:id="@+id/eta_progress_bar"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="8dp"
+                            android:max="100"
+                            android:progress="0"
+                            android:progressTint="@color/colorAccent"
+                            android:progressBackgroundTint="@color/text_color_secondary"
+                            android:layout_marginTop="4dp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:layout_marginTop="4dp">
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="Train Far"
+                                android:textSize="10sp"
+                                android:textColor="@color/text_color_secondary"
+                                android:alpha="0.7" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="At Gate"
+                                android:textSize="10sp"
+                                android:textColor="@color/text_color_secondary"
+                                android:alpha="0.7" />
+                        </LinearLayout>
+                    </LinearLayout>
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
-        </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
 
         <!-- Event Log Section -->
         <androidx.cardview.widget.CardView
@@ -281,12 +358,20 @@
                     android:layout_height="wrap_content"
                     android:background="@color/colorPrimary"
                     android:padding="16dp"
-                    android:gravity="center">
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_event_log"
+                        android:contentDescription="Event Log Icon"
+                        android:layout_marginEnd="8dp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="📋 EVENT LOG"
+                        android:text="EVENT LOG"
                         android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/white" />
