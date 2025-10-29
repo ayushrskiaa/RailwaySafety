@@ -14,6 +14,7 @@ class FirebaseRepository {
     private val metricsRef: DatabaseReference = database.getReference("safety_metrics")
     private val incidentsRef: DatabaseReference = database.getReference("incidents")
     private val alertsRef: DatabaseReference = database.getReference("alerts")
+    private val gateRef: DatabaseReference = database.getReference("gate_status")
     
     companion object {
         private const val TAG = "FirebaseRepository"
@@ -46,6 +47,9 @@ class FirebaseRepository {
     
     private val _alerts = MutableLiveData<List<Alert>>()
     val alerts: LiveData<List<Alert>> = _alerts
+
+    private val _gateStatus = MutableLiveData<Boolean>()
+    val gateStatus: LiveData<Boolean> = _gateStatus
     
     init {
         setupRealtimeListeners()
@@ -135,6 +139,19 @@ class FirebaseRepository {
 
             override fun onCancelled(error: DatabaseError) {
                 Log.e(TAG, "Alerts listener cancelled: ${error.message}")
+            }
+        })
+
+        // Listen for gate status changes
+        gateRef.child("isTrainApproaching").addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val isApproaching = snapshot.getValue(Boolean::class.java) ?: false
+                _gateStatus.postValue(isApproaching)
+                Log.d(TAG, "Gate status updated: isTrainApproaching = $isApproaching")
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                Log.e(TAG, "Gate status listener cancelled: ${error.message}")
             }
         })
     }

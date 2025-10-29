@@ -21,4 +21,18 @@
     <color name="dark_gray">#424242</color>
     <color name="card_background">#FFFFFF</color>
     <color name="dashboard_background">#F0F4F8</color>
+
+    <!-- Indian Railways Theme Colors -->
+    <color name="colorPrimary">#003366</color>
+    <color name="colorPrimaryDark">#002244</color>
+    <color name="colorAccent">#FF9933</color>
+    <color name="background_color">#F0F4F8</color>
+    <color name="card_background_color">#FFFFFF</color>
+    <color name="text_color_primary">#212121</color>
+    <color name="text_color_secondary">#757575</color>
+    <color name="divider_color">#BDBDBD</color>
+    <color name="status_bar_color">#002244</color>
+    <color name="icon_tint_color">#FFFFFF</color>
+    <color name="button_color">#003366</color>
+    <color name="button_text_color">#FFFFFF</color>
 </resources>

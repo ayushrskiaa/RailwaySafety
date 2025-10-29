@@ -25,6 +25,12 @@ import java.util.*
 import javax.mail.*
 import javax.mail.internet.InternetAddress
 import javax.mail.internet.MimeMessage
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import com.example.myapplication2.services.NotificationService
 
 class MainActivity : AppCompatActivity() {
 
@@ -38,6 +44,16 @@ class MainActivity : AppCompatActivity() {
     private val SENDER_EMAIL = "ayushkumar823932@gmail.com"  // Change this
     private val SENDER_PASSWORD = "hokrnsfxtiucscxz"      // Use Gmail App Password (remove spaces)
 
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted: Boolean ->
+        if (isGranted) {
+            Toast.makeText(this, "Notifications permission granted", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "Notifications permission denied", Toast.LENGTH_SHORT).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -45,6 +61,12 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setSupportActionBar(binding.appBarMain.toolbar)
+
+        askNotificationPermission()
+
+        // Start the NotificationService
+        val serviceIntent = Intent(this, NotificationService::class.java)
+        startService(serviceIntent)
         
         // TEST: Write sample data to Firebase to verify connection
         testFirebaseConnection()
@@ -67,6 +89,23 @@ class MainActivity : AppCompatActivity() {
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
+    }
+
+    private fun askNotificationPermission() {
+        // This is only necessary for API level 33+ (TIRAMISU)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                // FCM SDK (and your app) can post notifications.
+            } else if (shouldShowRequestPermissionRationale(android.Manifest.permission.POST_NOTIFICATIONS)) {
+                // TODO: Display an educational UI explaining why the user should enable notifications
+                // for your app.
+            } else {
+                // Directly ask for the permission
+                requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
