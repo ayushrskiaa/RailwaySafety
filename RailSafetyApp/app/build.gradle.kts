@@ -27,6 +27,19 @@ android {
             )
         }
     }
+    
+    // Custom APK naming
+    applicationVariants.all {
+        outputs.all {
+            val outputImpl = this as com.android.build.gradle.internal.api.BaseVariantOutputImpl
+            val variantName = name
+            outputImpl.outputFileName = when {
+                variantName.contains("release", ignoreCase = true) -> "Railway Safety.apk"
+                variantName.contains("debug", ignoreCase = true) -> "Railway Safety.apk"
+                else -> "Railway Safety.apk"
+            }
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
