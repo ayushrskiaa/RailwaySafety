@@ -89,8 +89,17 @@ class HomeFragment : Fragment() {
             isTrainApproaching = status.contains("Approaching", ignoreCase = true) || 
                                 status.contains("Moving", ignoreCase = true)
             
-            if (!isTrainApproaching) {
-                // Stop countdown when train crossed or reset
+            // Explicitly reset ETA when train crosses
+            if (status.contains("Crossed", ignoreCase = true)) {
+                Log.d(TAG, "Train crossed detected - resetting ETA to 0")
+                handler.removeCallbacks(etaCountdownRunnable)
+                currentETA = 0f
+                lastFirebaseETA = 0f
+                binding.etaToGateValue.text = "0.00"
+                updateETAProgress("0.00")
+                isTrainApproaching = false
+            } else if (!isTrainApproaching) {
+                // Stop countdown when train is not approaching (system reset, etc.)
                 handler.removeCallbacks(etaCountdownRunnable)
                 currentETA = 0f
                 lastFirebaseETA = 0f
@@ -101,6 +110,17 @@ class HomeFragment : Fragment() {
         homeViewModel.gateStatus.observe(viewLifecycleOwner) { status ->
             Log.d(TAG, "Gate Status updated: $status")
             binding.gateStatusValue.text = status
+            
+            // Reset ETA when gate opens
+            if (status.equals("Open", ignoreCase = true) || 
+                status.equals("Opening", ignoreCase = true)) {
+                handler.removeCallbacks(etaCountdownRunnable)
+                currentETA = 0f
+                lastFirebaseETA = 0f
+                binding.etaToGateValue.text = "0.00"
+                updateETAProgress("0.00")
+                isTrainApproaching = false
+            }
         }
         
         // Observe current speed
@@ -129,6 +149,17 @@ class HomeFragment : Fragment() {
                     handler.removeCallbacks(etaCountdownRunnable)
                     handler.postDelayed(etaCountdownRunnable, 1000)
                 }
+            }
+        }
+        
+        // Observe arrival time
+        homeViewModel.arrivalTime.observe(viewLifecycleOwner) { arrivalTime ->
+            Log.d(TAG, "Arrival time updated: $arrivalTime")
+            // Display arrival time below or alongside ETA
+            if (arrivalTime != "--") {
+                binding.etaToGateLabel.text = "ETA (s) / $arrivalTime"
+            } else {
+                binding.etaToGateLabel.text = "ETA to Gate (s)"
             }
         }
         

@@ -28,6 +28,9 @@ class RailwayCrossingRepository private constructor() {
     private val _etaToGate = MutableLiveData<String>()
     val etaToGate: LiveData<String> = _etaToGate
     
+    private val _arrivalTime = MutableLiveData<String>()
+    val arrivalTime: LiveData<String> = _arrivalTime
+    
     private val _lastUpdate = MutableLiveData<String>()
     val lastUpdate: LiveData<String> = _lastUpdate
     
@@ -191,13 +194,27 @@ class RailwayCrossingRepository private constructor() {
             }
             _currentSpeed.postValue(speedValue)
             
-            // Update ETA
-            val etaValue = if (event == "train_crossed" || event == "system_reset") {
+            // Update ETA - Set to 0 when gate opens or train crosses
+            val etaValue = if (event == "train_crossed" || event == "system_reset" || 
+                              event == "gate_opened" || gateStatus == "opening") {
                 "0.00"
             } else {
                 eta
             }
             _etaToGate.postValue(etaValue)
+            
+            // Calculate and update exact arrival time
+            val etaSeconds = etaValue.toFloatOrNull() ?: 0f
+            val arrivalTimeText = if (etaSeconds > 0) {
+                val currentTimeMillis = System.currentTimeMillis()
+                val arrivalTimeMillis = currentTimeMillis + (etaSeconds * 1000).toLong()
+                val arrivalDate = Date(arrivalTimeMillis)
+                val timeFormat = SimpleDateFormat("hh:mm:ss a", Locale.getDefault())
+                "Arrives at ${timeFormat.format(arrivalDate)}"
+            } else {
+                "--"
+            }
+            _arrivalTime.postValue(arrivalTimeText)
             
             // Update last update time
             val currentTime = SimpleDateFormat("hh:mm:ss a", Locale.getDefault())
@@ -217,6 +234,7 @@ class RailwayCrossingRepository private constructor() {
         _gateStatus.postValue("Loading Update...")
         _currentSpeed.postValue("0.00")
         _etaToGate.postValue("0.00")
+        _arrivalTime.postValue("--")
         _lastUpdate.postValue("--")
         _eventLog.postValue(emptyList())
     }

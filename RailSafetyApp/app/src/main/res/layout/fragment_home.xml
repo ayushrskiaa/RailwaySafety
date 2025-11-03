@@ -261,6 +261,7 @@
                     android:orientation="vertical">
 
                     <TextView
+                        android:id="@+id/eta_to_gate_label"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="ETA TO GATE"

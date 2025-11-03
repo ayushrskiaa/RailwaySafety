@@ -14,6 +14,7 @@ class HomeViewModel : ViewModel() {
     val gateStatus: LiveData<String> = repository.gateStatus
     val currentSpeed: LiveData<String> = repository.currentSpeed
     val etaToGate: LiveData<String> = repository.etaToGate
+    val arrivalTime: LiveData<String> = repository.arrivalTime
     val lastUpdate: LiveData<String> = repository.lastUpdate
     val eventLog: LiveData<List<Event>> = repository.eventLog
 }
